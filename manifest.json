@@ -1,0 +1,21 @@
+{
+  "short_name": "AuditVamus",
+  "name": "Auditoria de Viagens - Vamus Algarve",
+  "icons": [
+    {
+      "src": "icon.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icon.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#007BFF",
+  "theme_color": "#007BFF",
+  "display": "standalone",
+  "orientation": "portrait"
+}

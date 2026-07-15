@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ficha de Avaliacao Vamus</title>
+
+<!-- Ligação ao Manifesto da App -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#007BFF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+<!-- Registo do Service Worker para suporte Offline -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('Service Worker registado com sucesso!', reg))
+        .catch(err => console.log('Erro ao registar Service Worker:', err));
+    });
+  }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<style>
+body { font-family: Arial, sans-serif; padding: 15px; background: #f4f4f9; color: #333; font-size: 14px; }
+.card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; }
+.section-title { background: #007bff; color: white; padding: 8px 12px; border-radius: 4px; font-weight: bold; margin-top: 15px; margin-bottom: 10px; }
+label { font-weight: bold; display: block; margin-top: 10px; }
+input[type="text"], input[type="time"], input[type="date"], select, textarea { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; }
+input[type="file"] { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background: #fff; }
+.radio-group { margin-top: 5px; display: flex; flex-direction: column; gap: 8px; background: #f8f9fa; padding: 10px; border-radius: 4px; border: 1px solid #eee; }
+.radio-option { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.radio-option input { width: 20px; height: 20px; }
+button { background: #007bff; color: white; padding: 14px; border: none; border-radius: 4px; width: 100%; font-size: 16px; margin-top: 15px; cursor: pointer; font-weight: bold; }
+.btn-add { background: #17a2b8; margin-top: 10px; padding: 8px; font-size: 14px; }
+.btn-excel { background: #28a745; margin-top: 10px; }
+.btn-cancelar-edicao { background: #6c757d; margin-top: 10px; }
+.preview-img { max-width: 100%; margin-top: 10px; display: none; border-radius: 4px; border: 1px solid #ddd; }
+.sub-lista { background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 5px; border: 1px dashed #ccc; max-height: 200px; overflow-y: auto; }
+.estacao-item { font-size: 13px; padding: 5px 0; border-bottom: 1px solid #eee; }
+.item-registo { border-left: 5px solid #28a745; margin-bottom: 10px; background: #fff; padding: 10px; border-radius: 4px; font-size: 13px; position: relative; }
+.item-registo-texto { padding-right: 140px; }
+.btn-delete { position: absolute; top: 10px; right: 10px; width: auto; background: #dc3545; padding: 6px 10px; font-size: 12px; margin-top: 0; border-radius: 4px; }
+.btn-editar { position: absolute; top: 10px; right: 75px; width: auto; background: #ffc107; color: #333; padding: 6px 10px; font-size: 12px; margin-top: 0; border-radius: 4px; }
+table.tabela-paragens { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+table.tabela-paragens th { background: #007bff; color: white; padding: 6px 4px; text-align: left; position: sticky; top: 0; }
+table.tabela-paragens td { border-bottom: 1px solid #ddd; padding: 4px 3px; vertical-align: middle; }
+table.tabela-paragens input { padding: 4px; font-size: 12px; width: 100%; box-sizing: border-box; margin-top: 0; }
+.tabela-wrap { max-height: 480px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; }
+.hora-prevista { font-weight: bold; white-space: nowrap; }
+
+.pag-linha { display: flex; align-items: center; gap: 3px; margin-bottom: 2px; white-space: nowrap; }
+.pag-label { width: 12px; font-weight: bold; font-size: 11px; }
+.btn-mini { width: 22px; height: 22px; min-width: 22px; padding: 0; margin: 0; font-size: 14px; line-height: 1; border-radius: 4px; }
+.btn-menos { background: #dc3545; }
+.btn-mais { background: #28a745; }
+.pag-valor { font-weight: bold; min-width: 16px; text-align: center; display: inline-block; font-size: 12px; }
+.total-pax { font-weight: bold; text-align: center; background: #e9ecef; padding: 4px; border-radius: 4px; font-size: 13px; }
+
+.pag-linha-manual { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.pag-linha-manual .pag-label { width: auto; font-size: 14px; }
+.pag-linha-manual .pag-valor { font-size: 16px; }
+
+.foto-preview-mini { max-width: 100%; margin-top: 8px; display: none; border-radius: 4px; border: 1px solid #ddd; }
+.aviso-exportar { background: #d1ecf1; padding: 8px; border-radius: 4px; font-size: 12px; margin-top: 10px; }
+.aviso-edicao { background: #fff3cd; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-weight: bold; display: none; }
+.matricula-linha { display: flex; gap: 10px; align-items: flex-start; }
+.matricula-linha > div { flex: 1; }
+</style>
+</head>
+<body>
+
+<h2>Ficha de Avaliacao da Viagem - Vamus</h2>
+
+<div class="card">
+    <div id="avisoEdicao" class="aviso-edicao">A editar uma ficha existente. Ao guardar, esta ficha sera atualizada.</div>
+
+    <div class="section-title">1. Identificacao da Viagem</div>
+
+    <label>Avaliador(es):</label>
+    <input type="text" id="avaliadores" placeholder="Ex: JP+GS">
+
+    <label>Linha / Carreira:</label>
+    <select id="carreiraSelect" onchange="gerarTabelaHorario()">
+        <option value="">-- Escolher carreira --</option>
+    </select>
+
+    <label>Sentido:</label>
+    <select id="sentido" onchange="gerarTabelaHorario()">
+        <option value="Ascendente">Ascendente</option>
+        <option value="Descendente">Descendente</option>
+    </select>
+
+    <label>Data:</label>
+    <input type="date" id="data_viagem">
+
+    <label>Matricula do veiculo:</label>
+    <div class="matricula-linha">
+        <div>
+            <input type="text" id="matricula" placeholder="Ex: AA-00-BB">
+        </div>
+        <div>
+            <input type="file" id="matricula_foto" accept="image/*" capture="environment">
+        </div>
+    </div>
+    <img id="preview_matricula" class="foto-preview-mini">
+
+    <label>Quilometros esperados:</label>
+    <input type="text" id="km_esperados">
+
+    <label>Quilometros efetuados (km):</label>
+    <input type="text" id="km_efetuados">
+
+    <div class="section-title">2. Registo de Passagem nas Paragens</div>
+
+    <div id="avisoSemHorario" style="background:#fff3cd; padding:10px; border-radius:4px; margin-bottom:10px; display:none;">
+        Esta carreira ainda nao tem horario guardado no sistema. Usa o registo manual abaixo, ou adiciona o horario desta carreira no ficheiro app.js.
+    </div>
+
+    <div id="painelTabelaHorario"></div>
+
+    <div style="background: #f1f3f5; padding: 12px; border-radius: 6px; margin-top: 15px;">
+        <strong>Registo manual (para paragens fora do horario automatico):</strong>
+
+        <label>Nome da Paragem:</label>
+        <input type="text" id="paragem_nome" placeholder="Ex: Tavira (Terminal)">
+
+        <label>Hora no Horario:</label>
+        <input type="time" id="paragem_hora_teorica">
+
+        <label>Hora Tempo Real:</label>
+        <input type="time" id="paragem_hora_real">
+
+        <label>Pagamento / Passageiros:</label>
+        <div class="pag-linha-manual">
+            <span class="pag-label">Dinheiro</span>
+            <button type="button" class="btn-mini btn-menos" onclick="alterarPagManual('D',-1)">-</button>
+            <span id="pagManual_D" class="pag-valor">0</span>
+            <button type="button" class="btn-mini btn-mais" onclick="alterarPagManual('D',1)">+</button>
+        </div>
+        <div class="pag-linha-manual">
+            <span class="pag-label">Cartao</span>
+            <button type="button" class="btn-mini btn-menos" onclick="alterarPagManual('C',-1)">-</button>
+            <span id="pagManual_C" class="pag-valor">0</span>
+            <button type="button" class="btn-mini btn-mais" onclick="alterarPagManual('C',1)">+</button>
+        </div>
+        <div class="pag-linha-manual">
+            <span class="pag-label">App</span>
+            <button type="button" class="btn-mini btn-menos" onclick="alterarPagManual('A',-1)">-</button>
+            <span id="pagManual_A" class="pag-valor">0</span>
+            <button type="button" class="btn-mini btn-mais" onclick="alterarPagManual('A',1)">+</button>
+        </div>
+        <div id="totalPaxManual" class="total-pax">Total Passageiros: 0</div>
+
+        <label>Eventos observados / Obs:</label>
+        <input type="text" id="paragem_obs" placeholder="Ex: Nao passou, atraso...">
+
+        <button type="button" class="btn-add" onclick="adicionarParagem()">+ Adicionar Paragem Manual a Lista</button>
+
+        <div id="painelParagens" class="sub-lista">
+            <em style="color: #6c757d;">Nenhuma paragem manual registada nesta viagem.</em>
+        </div>
+    </div>
+
+    <div class="section-title">3. Inspecao Visual da Limpeza Aparente</div>
+    <div class="radio-group">
+        <div class="radio-option"><input type="radio" name="limpeza" value="Excelentes condicoes higienicas"> Excelentes condicoes higienicas</div>
+        <div class="radio-option"><input type="radio" name="limpeza" value="Boas condicoes higienicas"> Boas condicoes higienicas</div>
+        <div class="radio-option"><input type="radio" name="limpeza" value="Suficientes condicoes higienicas"> Suficientes condicoes higienicas</div>
+        <div class="radio-option"><input type="radio" name="limpeza" value="Mas condicoes higienicas"> Mas condicoes higienicas</div>
+        <div class="radio-option"><input type="radio" name="limpeza" value="Muito mas condicoes higienicas"> Muito mas condicoes higienicas</div>
+    </div>
+
+    <label>Comentarios sobre o estado de limpeza do veiculo:</label>
+    <textarea id="obs_limpeza" rows="2" placeholder="Ex: Areia no chao..."></textarea>
+
+    <label>Existencia de materiais e componentes vetustos, vandalizados, degradados ou danificados?</label>
+    <input type="text" id="materiais_danificados" placeholder="Sim / Nao e detalhes">
+
+    <label>Aromatizacao eficaz dos veiculos?</label>
+    <input type="text" id="aromatizacao" placeholder="Sim / Nao">
+
+    <label>Climatizacao eficaz dos veiculos?</label>
+    <input type="text" id="climatizacao" placeholder="Sim / Nao">
+
+    <label>Existencia de graffitis ou pastilhas?</label>
+    <input type="text" id="graffitis" placeholder="Sim / Nao">
+
+    <div class="section-title">4. Tipo de Conducao</div>
+    <div class="radio-group">
+        <div class="radio-option"><input type="radio" name="conducao" value="Conducao suave"> Conducao suave</div>
+        <div class="radio-option"><input type="radio" name="conducao" value="Conducao brusca"> Conducao brusca</div>
+        <div class="radio-option"><input type="radio" name="conducao" value="Velocidades excessivas"> Velocidades excessivas</div>
+        <div class="radio-option"><input type="radio" name="conducao" value="Aproximacao do veiculo da paragem de autocarro"> Aproximacao do veiculo da paragem de autocarro</div>
+    </div>
+
+    <div class="section-title">5. Atendimento e Informacao</div>
+
+    <label>Atendimento do pessoal da Concessionaria:</label>
+    <input type="text" id="atendimento" placeholder="Ex: Cordial, rude...">
+
+    <label>Afixacao de informacao respeitante aos direitos dos passageiros?</label>
+    <input type="text" id="direitos_info" placeholder="Sim / Nao">
+
+    <label>Disponibilizacao de toda a informacao a bordo relativa ao servico publico em formato bilingue?</label>
+    <input type="text" id="bilingue_info" placeholder="Sim / Nao">
+
+    <label>Tipos de conteudos disponibilizados a bordo pelos ecras ao longo da viagem e duracao dos mesmos:</label>
+    <textarea id="ecras_conteudo" rows="2" placeholder="Ex: Nao funciona / Sem ecras..."></textarea>
+
+    <label>Autocarro com Wi-Fi?</label>
+    <input type="text" id="wifi" placeholder="Ex: Sim / Nao / Nao funciona">
+
+    <label>Rota Vamus (anexar imagem):</label>
+    <input type="file" id="rota_vamus" accept="image/*" capture="environment">
+    <img id="preview_rota_vamus" class="foto-preview-mini">
+
+    <label>Rota calculada com app Samsung Cycling (anexar imagem):</label>
+    <input type="file" id="samsung_cycling" accept="image/*" capture="environment">
+    <img id="preview_samsung_cycling" class="foto-preview-mini">
+
+    <label>Comentarios gerais:</label>
+    <textarea id="comentarios_gerais" rows="3"></textarea>
+
+    <div class="section-title">6. Evidencias Fotograficas</div>
+    <label>Foto da porta lateral do autocarro / Foto comprobatoria:</label>
+    <input type="file" id="foto" accept="image/*" capture="environment">
+    <img id="preview" class="preview-img">
+
+    <button type="button" onclick="guardarFichaFinal()">Guardar Relatorio Completo</button>
+    <button type="button" class="btn-cancelar-edicao" id="btnCancelarEdicao" style="display:none;" onclick="cancelarEdicao()">Cancelar Edicao</button>
+</div>
+
+<div class="card" style="background: #e9ecef;">
+    <h3>Exportacao de Dados</h3>
+    <button type="button" class="btn-excel" onclick="exportarParaExcel()">Exportar Tudo para Excel (com imagens)</button>
+    <div class="aviso-exportar">O ficheiro Excel gerado inclui as fotos e imagens anexadas em cada ficha. E necessario ligacao a internet na primeira vez que abrires a pagina, para carregar a biblioteca de exportacao.</div>
+</div>
+
+<h3>Fichas Guardadas no Sistema</h3>
+<div id="listaRegistos"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
