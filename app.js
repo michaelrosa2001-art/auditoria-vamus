@@ -96073,7 +96073,6 @@ let isTrackingGps = false;
 const configFotos = [
   { inputId: "matricula_foto", previewId: "preview_matricula" },
   { inputId: "rota_vamus", previewId: "preview_rota_vamus" },
-  { inputId: "samsung_cycling", previewId: "preview_samsung_cycling" },
   { inputId: "foto", previewId: "preview" }
 ];
 
@@ -96493,7 +96492,7 @@ window.guardarFichaFinal = function() {
 }
 
   const novaFicha = {
-    id: indiceEdicao === -1 ? Date.now().toString() : fichasGuardadas[indiceEdicao].id,
+    id_local: Date.now(),
     avaliadores,
     carreira,
     sentido,
@@ -96770,12 +96769,32 @@ window.cancelarEdicao = function() {
   limparFormularioCompleto();
 };
 
-window.eliminarFicha = function(i) {
-  if (confirm("Tem a certeza que deseja eliminar esta ficha de avaliação?")) {
-    fichasGuardadas.splice(i, 1);
+// Substitui a tua função eliminarFicha antiga por esta:
+window.eliminarFicha = function(index) {
+    const fichaParaEsconder = fichasGuardadas[index];
+    
+    // Identificador único da ficha
+    const idFicha = fichaParaEsconder.id_local || `${fichaParaEsconder.data_viagem}_${fichaParaEsconder.carreiraSelect}_${fichaParaEsconder.avaliadores}`;
+
+    // 1. Lemos a lista de ocultadas atual do navegador
+    let escondidas = JSON.parse(localStorage.getItem("fichas_escondidas") || "[]");
+    
+    // 2. Adicionamos o ID desta ficha à lista
+    escondidas.push(idFicha);
+    
+    // 3. Gravamos de volta no localStorage do navegador
+    localStorage.setItem("fichas_escondidas", JSON.stringify(escondidas));
+
+    // 4. Removemos do nosso array ativo na sessão para desaparecer do ecrã de imediato
+    fichasGuardadas.splice(index, 1);
+
+    // 5. Atualizamos a cópia local do localStorage para segurança
     localStorage.setItem("fichas_vamus", JSON.stringify(fichasGuardadas));
+
+    // 6. Redesenhamos a barra lateral
     renderFichasGuardadas();
-  }
+    
+    showNotification("Ficha removida da tua lista com sucesso!", "success");
 };
 
 function limparFormularioCompleto() {
@@ -97001,17 +97020,27 @@ if (openSidebarBtn && closeSidebarBtn && sidebar && sidebarOverlay) {
   sidebarOverlay.addEventListener('click', toggleSidebar);
 }
 async function carregarFichasOnline() {
-    if (!supabaseClient) return; // Alterado para supabaseClient
+    if (!supabaseClient) return; 
     try {
-        const { data, error } = await supabaseClient // Alterado para supabaseClient
+        const { data, error } = await supabaseClient 
             .from('fichas')
             .select('*')
-            .order('criado_em', { ascending: false });
+            .order('created_at', { ascending: false });
 
         if (error) throw error;
 
         if (data) {
-            fichasGuardadas = data.map(item => item.dados);
+            // Lemos a lista de IDs que o utilizador escolheu "esconder" neste navegador
+            const escondidas = JSON.parse(localStorage.getItem("fichas_escondidas") || "[]");
+
+            // Mapeia os dados e FILTRA apenas as fichas que NÃO estão na lista de ocultadas
+            fichasGuardadas = data
+                .map(item => item.dados)
+                .filter(ficha => {
+                    // Identificador único (se não tiver id_local, gera um baseado no texto antigo)
+                    const idFicha = ficha.id_local || `${ficha.data_viagem}_${ficha.carreiraSelect}_${ficha.avaliadores}`;
+                    return !escondidas.includes(idFicha); // Mantém apenas se NÃO estiver escondida
+                });
         }
     } catch (error) {
         console.error("Erro ao ler dados do Supabase. Usando cópia local:", error);
