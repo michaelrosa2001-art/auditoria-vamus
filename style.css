@@ -682,3 +682,102 @@ input[type="file"]::file-selector-button:hover {
   color: var(--primary-dark); /* Torna-se ligeiramente mais escura */
   transform: scale(1.08);     /* Faz um zoom micro-interativo muito elegante */
 }
+/* ==========================================================================
+   CARTÕES DE FICHAS GUARDADAS NA SIDEBAR (ESTILO CLEAN)
+   ========================================================================== */
+
+/* 1. O Contentor do Cartão da Ficha */
+#listaRegistos > div,
+#listaRegistos .ficha-item {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 16px 18px !important;
+  margin-bottom: 12px !important;
+  border-left: 4px solid var(--primary) !important; /* Linha esmeralda fina */
+  box-sizing: border-box !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 16px !important;
+  box-shadow: 0px 4px 10px rgba(15, 23, 42, 0.02) !important;
+  transition: var(--transition) !important;
+  font-size: 0.82rem !important;
+  color: var(--text-main) !important;
+  line-height: 1.5 !important;
+}
+
+#listaRegistos > div:hover {
+  border-color: #cbd5e1 !important;
+  box-shadow: 0px 6px 16px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* 2. Suavização dos Títulos dentro do Texto (Ex: "Data:", "Linha:") */
+#listaRegistos > div strong,
+#listaRegistos > div b {
+  color: var(--text-muted) !important; /* Cinza suave */
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.4px !important;
+}
+
+/* 3. Estilo Geral para os Botões do Cartão */
+#listaRegistos button {
+  padding: 8px 14px !important;
+  font-size: 0.78rem !important;
+  font-family: var(--font-family) !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: var(--transition) !important;
+}
+
+/* 4. Botão "Editar" (Cinza-azulado discreto) */
+#listaRegistos button:first-of-type,
+#listaRegistos .btn-editar,
+#listaRegistos .btn-edit {
+  background-color: #f1f5f9 !important; /* Fundo cinza suave */
+  color: #475569 !important;            /* Texto cinza slate */
+  border: 1px solid #e2e8f0 !important;
+}
+
+#listaRegistos button:first-of-type:hover,
+#listaRegistos .btn-editar:hover,
+#listaRegistos .btn-edit:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* 5. Botão "Eliminar" (Estilo Rose-Water suave) */
+#listaRegistos button:last-of-type,
+#listaRegistos .btn-eliminar,
+#listaRegistos .btn-delete {
+  background-color: #fef2f2 !important; /* Fundo rosa ultra suave */
+  color: #ef4444 !important;            /* Texto vermelho moderno */
+  border: 1px solid #fee2e2 !important;
+}
+
+#listaRegistos button:last-of-type:hover,
+#listaRegistos .btn-eliminar:hover,
+#listaRegistos .btn-delete:hover {
+  background-color: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+/* ==========================================================================
+   BOTÃO DE EXPORTAÇÃO INDIVIDUAL NA SIDEBAR
+   ========================================================================== */
+
+/* Botão de Exportação Individual (Estilo Clean Esmeralda) */
+#listaRegistos button.btn-exportar-individual {
+  background-color: #f0fdf4 !important; /* Verde ultra suave */
+  color: #10b981 !important;            /* Texto esmeralda */
+  border: 1px solid #d1fae5 !important;
+}
+
+#listaRegistos button.btn-exportar-individual:hover {
+  background-color: #d1fae5 !important;
+  color: #047857 !important;
+  transform: translateY(-1px);
+}

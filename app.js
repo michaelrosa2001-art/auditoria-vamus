@@ -1,3 +1,12 @@
+// ==========================================
+// 1. CONFIGURAÇÃO E LIGAÇÃO AO SUPABASE
+// ==========================================
+const supabaseUrl = 'https://mzfwpxtatpobpeqmcliy.supabase.co/rest/v1/'; // Substitui pelo teu Project URL (encontrado em Data API)
+const supabaseKey = 'sb_publishable_p9iyecJkJY-cVbwb7t28ow_3aweTkVq';      // Substitui pela tua Publishable Key
+
+// Inicializa o cliente do Supabase
+const supabase = supabaseUrl && supabaseKey ? supabase.createClient(supabaseUrl, supabaseKey) : null;
+
 /**
  * Ficha de Avaliação da Viagem - Vamus Algarve
  * Motor de dados e lógica operacional (Versão Corrigida)
@@ -96034,7 +96043,7 @@ const baseDadosHorarios = {
 
 // 2. Variáveis de Estado da Aplicação
 let paragensAtuais = [];
-let fichasGuardadas = JSON.parse(localStorage.getItem("fichas_vamus") || "[]");
+let fichasGuardadas = []; // Inicializa vazio. Vamos preencher com os dados do Supabase
 let indiceEdicao = -1; 
 let pagManual = { D: 0, C: 0, A: 0 };
 let fotosAtuais = { matricula_foto: "", rota_vamus: "", samsung_cycling: "", foto: "" };
@@ -96430,6 +96439,24 @@ window.guardarFichaFinal = function() {
 
   if (indiceEdicao === -1) {
     fichasGuardadas.push(novaFicha);
+  
+    // --- ADICIONA ESTE BLOCO AQUI PARA GRAVAR NO SUPABASE ONLINE ---
+        if (supabase) {
+            supabase.from('fichas')
+                .insert([{ dados: novaFicha }])
+                .then(({ error }) => {
+                    if (error) {
+                        console.error("Erro ao enviar para o Supabase:", error);
+                    } else {
+                        console.log("Ficha enviada com sucesso para a nuvem!");
+                    }
+                });
+        }
+        // -------------------------------------------------------------
+  
+        
+        
+        
   } else {
     fichasGuardadas[indiceEdicao] = novaFicha;
     cancelarEdicao();
@@ -96442,27 +96469,62 @@ window.guardarFichaFinal = function() {
   renderFichasGuardadas();
 };
 
+// Substitui toda a tua função anterior por esta:
 function renderFichasGuardadas() {
   const divLista = document.getElementById("listaRegistos");
+  if (!divLista) return;
+
+  // Se a lista estiver vazia, mostra a mensagem com o estilo clean
   if (fichasGuardadas.length === 0) {
-    divLista.innerHTML = `<em style="color:#6c757d;">Não existem fichas de avaliação registadas no sistema.</em>`;
+    divLista.innerHTML = `<em style="color: var(--text-muted); font-size: 0.85rem; display: block; text-align: center; margin-top: 10px;">Não existem fichas de avaliação registadas no sistema.</em>`;
     return;
   }
 
-  divLista.innerHTML = fichasGuardadas.map((f, i) => {
-    const totalPax = f.paragens.reduce((sum, p) => sum + (p.dinheiro || 0) + (p.cartao || 0) + (p.app || 0), 0);
-    return `
-      <div class="item-registo">
-        <div class="item-registo-texto">
-          <strong>Data:</strong> ${f.data_viagem} | <strong>Linha:</strong> ${f.carreira} (${f.sentido})<br>
-          <strong>Avaliador:</strong> ${f.avaliadores || "N/A"} | <strong>Matrícula:</strong> ${f.matricula || "N/A"}<br>
-          <strong>Total Passageiros:</strong> ${totalPax} | <strong>Limpeza:</strong> ${f.limpeza || "N/A"}
-        </div>
-        <button type="button" class="btn-editar" onclick="editarFicha(${i})">Editar</button>
-        <button type="button" class="btn-delete" onclick="eliminarFicha(${i})">Eliminar</button>
+  let html = "";
+  fichasGuardadas.forEach((ficha, index) => {
+    html += `
+      <div class="ficha-item">
+          <div>
+              <strong>Data:</strong> ${ficha.data_viagem || 'N/A'} | <strong>Linha:</strong> ${ficha.carreiraSelect || 'N/A'} <br>
+              <strong>Avaliador:</strong> ${ficha.avaliadores || 'N/A'}
+          </div>
+          <div class="ficha-actions" style="display: flex; gap: 6px; margin-top: 8px;">
+              <button type="button" onclick="editarFicha(${index})" class="btn-editar">Editar</button>
+              
+              <!-- NOVO BOTÃO DE EXPORTAÇÃO INDIVIDUAL -->
+              <button type="button" onclick="exportarFichaIndividual(${index})" class="btn-exportar-individual" title="Exportar esta ficha para Excel">Exportar</button>
+              
+              <button type="button" onclick="eliminarFicha(${index})" class="btn-eliminar">Eliminar</button>
+          </div>
       </div>
     `;
-  }).join("");
+  });
+  
+  divLista.innerHTML = html;
+}
+// Função para exportar apenas uma ficha individual
+// Substitui a função de exportação anterior por esta:
+function exportarFichaIndividual(index) {
+    // 1. Guardamos uma cópia de segurança das tuas fichas originais
+    const fichasOriginais = [...fichasGuardadas];
+    
+    // 2. Substituímos temporariamente a lista global apenas pela ficha selecionada
+    fichasGuardadas = [fichasOriginais[index]];
+    
+    try {
+        // 3. Chamamos a TUA função original de exportação (que já exporta imagens e tudo!)
+        // Nota: Garante que o nome da tua função principal de exportação é exatamente "exportarParaExcel"
+        exportarParaExcel(); 
+    } catch (error) {
+        console.error("Erro ao exportar:", error);
+        alert("Ocorreu um erro ao tentar exportar esta ficha.");
+    } finally {
+        // 4. Aconteça o que acontecer, restauramos a tua lista original de fichas
+        fichasGuardadas = fichasOriginais;
+        
+        // 5. Voltamos a renderizar as fichas na barra lateral para que nada suma do ecrã
+        renderFichasGuardadas();
+    }
 }
 
 window.editarFicha = function(i) {
