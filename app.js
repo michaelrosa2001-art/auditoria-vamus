@@ -1,11 +1,26 @@
 // ==========================================
-// 1. CONFIGURAÇÃO E LIGAÇÃO AO SUPABASE
+// 1. CONFIGURAÇÃO E LIGAÇÃO AO SUPABASE (SEM CONFLITOS)
 // ==========================================
-const supabaseUrl = 'https://mzfwpxtatpobpeqmcliy.supabase.co/rest/v1/'; // Substitui pelo teu Project URL (encontrado em Data API)
-const supabaseKey = 'sb_publishable_p9iyecJkJY-cVbwb7t28ow_3aweTkVq';      // Substitui pela tua Publishable Key
+const supabaseUrl = 'https://mzfwpxtatpobpeqmcliy.supabase.co'; 
+const supabaseKey = 'sb_publishable_p9iyecJkJY-cVbwb7t28ow_3aweTkVq';      
 
-// Inicializa o cliente do Supabase
-const supabase = supabaseUrl && supabaseKey ? supabase.createClient(supabaseUrl, supabaseKey) : null;
+// Mudamos o nome para "supabaseClient" para evitar conflitos de nomes
+let supabaseClient = null;
+
+try {
+    const supabaseGlobal = (typeof window !== "undefined" && window.supabase) || (typeof supabase !== "undefined" ? supabase : null);
+    
+    if (supabaseGlobal) {
+        const { createClient } = supabaseGlobal;
+        if (supabaseUrl && supabaseKey) {
+            // Inicializa a nossa ligação com o novo nome
+            supabaseClient = createClient(supabaseUrl, supabaseKey);
+            console.log("Supabase ligado com sucesso!");
+        }
+    }
+} catch (err) {
+    console.error("Não foi possível carregar a ligação online:", err);
+}
 
 /**
  * Ficha de Avaliação da Viagem - Vamus Algarve
@@ -96440,9 +96455,11 @@ window.guardarFichaFinal = function() {
   if (indiceEdicao === -1) {
     fichasGuardadas.push(novaFicha);
   
-    // --- ADICIONA ESTE BLOCO AQUI PARA GRAVAR NO SUPABASE ONLINE ---
-        if (supabase) {
-            supabase.from('fichas')
+    
+        
+        // --- ALTERADO PARA SUPABASECLIENT ---
+        if (supabaseClient) {
+            supabaseClient.from('fichas') // Alterado para supabaseClient
                 .insert([{ dados: novaFicha }])
                 .then(({ error }) => {
                     if (error) {
@@ -96452,7 +96469,8 @@ window.guardarFichaFinal = function() {
                     }
                 });
         }
-        // -------------------------------------------------------------
+
+    
   
         
         
@@ -96872,4 +96890,125 @@ if (openSidebarBtn && closeSidebarBtn && sidebar && sidebarOverlay) {
   openSidebarBtn.addEventListener('click', toggleSidebar);
   closeSidebarBtn.addEventListener('click', toggleSidebar);
   sidebarOverlay.addEventListener('click', toggleSidebar);
+}
+async function carregarFichasOnline() {
+    if (!supabaseClient) return; // Alterado para supabaseClient
+    try {
+        const { data, error } = await supabaseClient // Alterado para supabaseClient
+            .from('fichas')
+            .select('*')
+            .order('criado_em', { ascending: false });
+
+        if (error) throw error;
+
+        if (data) {
+            fichasGuardadas = data.map(item => item.dados);
+        }
+    } catch (error) {
+        console.error("Erro ao ler dados do Supabase. Usando cópia local:", error);
+        fichasGuardadas = JSON.parse(localStorage.getItem("fichas_vamus") || "[]");
+    } finally {
+        renderFichasGuardadas();
+    }
+}
+// ==========================================
+// SISTEMA DE AUTENTICAÇÃO (SUPABASE AUTH)
+// ==========================================
+let isSignUpMode = false;
+
+// Seleção de elementos da interface
+const loginOverlay = document.getElementById('login-container');
+const loginTitle = document.getElementById('login-title');
+const loginSubtitle = document.getElementById('login-subtitle');
+const btnAuthPrimary = document.getElementById('btn-auth-primary');
+const btnToggleAuth = document.getElementById('btn-toggle-auth');
+const btnSignout = document.getElementById('btn-signout');
+const loginForm = document.getElementById('login-form');
+
+// Alternar entre Iniciar Sessão (Login) e Criar Conta (Register)
+if (btnToggleAuth) {
+    btnToggleAuth.addEventListener('click', () => {
+        isSignUpMode = !isSignUpMode;
+        if (isSignUpMode) {
+            loginTitle.textContent = "Criar Conta";
+            loginSubtitle.textContent = "Regista-te para começares a submeter relatórios.";
+            btnAuthPrimary.textContent = "Registar";
+            btnToggleAuth.textContent = "Já tenho conta (Entrar)";
+        } else {
+            loginTitle.textContent = "Iniciar Sessão";
+            loginSubtitle.textContent = "Introduz as tuas credenciais para aceder ao painel.";
+            btnAuthPrimary.textContent = "Entrar";
+            btnToggleAuth.textContent = "Criar conta nova";
+        }
+    });
+}
+
+// Submissão do Formulário de Autenticação
+if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!supabaseClient) return;
+
+        const email = document.getElementById('auth-email').value.trim();
+        const password = document.getElementById('auth-password').value;
+
+        btnAuthPrimary.disabled = true;
+        btnAuthPrimary.textContent = isSignUpMode ? "A registar..." : "A entrar...";
+
+        try {
+            if (isSignUpMode) {
+                // Criar Conta no Supabase
+                const { data, error } = await supabaseClient.auth.signUp({ email, password });
+                if (error) throw error;
+                alert("Registo efetuado! Verifica o teu email para confirmares a conta antes de entrar.");
+                btnToggleAuth.click(); // Volta para o ecrã de Login após registar
+            } else {
+                // Iniciar Sessão no Supabase
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                // O estado de autenticação vai mudar e o listener abaixo tratará de carregar a aplicação
+            }
+        } catch (error) {
+            console.error("Erro na autenticação:", error);
+            alert("Erro: " + error.message);
+        } finally {
+            btnAuthPrimary.disabled = false;
+            btnAuthPrimary.textContent = isSignUpMode ? "Registar" : "Entrar";
+        }
+    });
+}
+
+// Ouvir as mudanças no estado de autenticação (Login, Logout, etc.)
+if (supabaseClient) {
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (session && session.user) {
+            // UTILIZADOR COM SESSÃO INICIADA!
+            console.log("Utilizador autenticado com sucesso:", session.user.email);
+            
+            if (loginOverlay) loginOverlay.classList.add('hidden'); // Esconde o ecrã de login
+            if (btnSignout) btnSignout.style.display = 'block';     // Mostra o botão de Sair
+            
+            // Descarrega as fichas online do Supabase
+            carregarFichasOnline();
+        } else {
+            // UTILIZADOR SEM SESSÃO (OU APÓS LOGOUT)
+            console.log("Nenhum utilizador com sessão ativa.");
+            
+            if (loginOverlay) loginOverlay.classList.remove('hidden'); // Mostra o ecrã de login
+            if (btnSignout) btnSignout.style.display = 'none';         // Esconde o botão de Sair
+            
+            // Limpa os dados em memória para segurança
+            fichasGuardadas = [];
+            renderFichasGuardadas();
+        }
+    });
+}
+
+// Comportamento do Botão de Sair (Sign Out)
+if (btnSignout) {
+    btnSignout.addEventListener('click', async () => {
+        if (!supabaseClient) return;
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) console.error("Erro ao terminar sessão:", error);
+    });
 }
