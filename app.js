@@ -96063,6 +96063,13 @@ let indiceEdicao = -1;
 let pagManual = { D: 0, C: 0, A: 0 };
 let fotosAtuais = { matricula_foto: "", rota_vamus: "", samsung_cycling: "", foto: "" };
 
+// === COLA ESTAS LINHAS AQUI PARA CONTROLAR O MAPA E O GPS ===
+let mapaTracking = null;
+let pathLine = null;
+let watchId = null;
+let coordenadasRota = []; // Guarda o histórico de posições [lat, lng]
+let isTrackingGps = false;
+
 const configFotos = [
   { inputId: "matricula_foto", previewId: "preview_matricula" },
   { inputId: "rota_vamus", previewId: "preview_rota_vamus" },
@@ -96296,9 +96303,9 @@ window.adicionarParagem = function() {
   const obs = document.getElementById("paragem_obs").value.trim();
 
   if (!nome) {
-    alert("Por favor, preencha o nome da paragem manual.");
+    showNotification("Por favor, preencha o nome da paragem manual.", "warning");
     return;
-  }
+}
 
   const novoItem = {
     nome: nome,
@@ -96379,6 +96386,68 @@ function configurarListenersImagens() {
     }
   });
 }
+// ==========================================
+// 7. MOTOR DE GEOLOCALIZAÇÃO E MAPA (GPS REAL-TIME)
+// ==========================================
+function inicializarMapaTracking() {
+    const mapContainer = document.getElementById('mapa-tracking');
+    if (!mapContainer || mapaTracking) return;
+
+    mapaTracking = L.map('mapa-tracking').setView([37.0176, -7.9304], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(mapaTracking);
+
+    pathLine = L.polyline([], { color: '#00a896', weight: 5, opacity: 0.85 }).addTo(mapaTracking);
+}
+
+const btnToggleGps = document.getElementById('btn-toggle-gps');
+if (btnToggleGps) {
+    btnToggleGps.addEventListener('click', () => {
+        inicializarMapaTracking();
+        
+        if (!isTrackingGps) {
+            if (!navigator.geolocation) {
+                showNotification("O teu dispositivo não suporta Geolocalização por GPS.", "error");
+                return;
+            }
+            
+            coordenadasRota = [];     
+            pathLine.setLatLngs([]);   
+            isTrackingGps = true;
+            
+            btnToggleGps.textContent = "⏹ Parar Gravação de Rota (GPS)";
+            btnToggleGps.className = "btn-gps-stop";
+            showNotification("Gravação de rota GPS iniciada!", "success");
+            
+            watchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    const novoPonto = [latitude, longitude];
+                    
+                    coordenadasRota.push(novoPonto); 
+                    pathLine.addLatLng(novoPonto);   
+                    mapaTracking.setView(novoPonto, 16);
+                },
+                (error) => {
+                    console.error("Erro ao obter posição GPS:", error);
+                    showNotification("Erro no sinal GPS. Garante que ativaste a localização no telemóvel.", "warning");
+                },
+                { enableHighAccuracy: true, maximumAge: 0, timeout: 8000 }
+            );
+        } else {
+            isTrackingGps = false;
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+            
+            btnToggleGps.textContent = "▶ Iniciar Gravação de Rota (GPS)";
+            btnToggleGps.className = "btn-gps-start";
+            showNotification("Rota gravada e associada a este relatório!", "success");
+        }
+    });
+}
 
 // 8. CRUD dos Relatórios Locais (LocalStorage)
 window.guardarFichaFinal = function() {
@@ -96394,7 +96463,7 @@ window.guardarFichaFinal = function() {
     const customInput = document.getElementById("carreira_manual_input");
     carreira = customInput ? customInput.value.trim() : "";
     if (!carreira) {
-      alert("Por favor, introduza o número e nome da linha personalizada.");
+      showNotification("Por favor, introduza o número e nome da linha personalizada.", "warning");
       return;
     }
   }
@@ -96419,9 +96488,9 @@ window.guardarFichaFinal = function() {
   const comentarios_gerais = document.getElementById("comentarios_gerais").value.trim();
 
   if (!data_viagem || !carreira) {
-    alert("Por favor, selecione pelo menos a Data e a Carreira da Viagem.");
+    showNotification("Por favor, selecione pelo menos a Data e a Carreira da Viagem.", "warning");
     return;
-  }
+}
 
   const novaFicha = {
     id: indiceEdicao === -1 ? Date.now().toString() : fichasGuardadas[indiceEdicao].id,
@@ -96448,7 +96517,7 @@ window.guardarFichaFinal = function() {
     paragens: JSON.parse(JSON.stringify(paragensAtuais)),
     matricula_foto: fotosAtuais.matricula_foto,
     rota_vamus: fotosAtuais.rota_vamus,
-    samsung_cycling: fotosAtuais.samsung_cycling,
+    samsung_cycling: coordenadasRota,
     foto: fotosAtuais.foto
   };
 
@@ -96481,7 +96550,7 @@ window.guardarFichaFinal = function() {
   }
 
   localStorage.setItem("fichas_vamus", JSON.stringify(fichasGuardadas));
-  alert("Relatório de avaliação guardado localmente com sucesso!");
+  showNotification("Relatório de avaliação guardado localmente com sucesso!", "success");
   
   limparFormularioCompleto();
   renderFichasGuardadas();
@@ -96535,7 +96604,7 @@ function exportarFichaIndividual(index) {
         exportarParaExcel(); 
     } catch (error) {
         console.error("Erro ao exportar:", error);
-        alert("Ocorreu um erro ao tentar exportar esta ficha.");
+        showNotification("Ocorreu um erro ao tentar exportar esta ficha.", "error");
     } finally {
         // 4. Aconteça o que acontecer, restauramos a tua lista original de fichas
         fichasGuardadas = fichasOriginais;
@@ -96723,11 +96792,12 @@ function limparFormularioCompleto() {
 }
 
 // 9. Exportação de Dados para Excel (ExcelJS com Imagens Embutidas)
+// 9. Exportação de Dados para Excel (ExcelJS com Imagens Embutidas)
 window.exportarParaExcel = async function() {
-  if (fichasGuardadas.length === 0) {
-    alert("Não existem fichas gravadas no sistema para exportar.");
-    return;
-  }
+    if (fichasGuardadas.length === 0) {
+        showNotification("Não existem fichas gravadas no sistema para exportar.", "warning");
+        return;
+    }
 
   const workbook = new ExcelJS.Workbook();
 
@@ -96873,7 +96943,7 @@ window.exportarParaExcel = async function() {
     link.download = `Relatorio_Vamus_${new Date().toISOString().slice(0,10)}.xlsx`;
     link.click();
   } catch (err) {
-    alert("Ocorreu um erro ao exportar o ficheiro Excel: " + err.message);
+    showNotification("Ocorreu um erro ao exportar o ficheiro Excel: " + err.message, "error");
   }
 };
 const openSidebarBtn = document.getElementById('open-sidebar');
@@ -96957,11 +97027,11 @@ if (loginForm) {
 
         try {
             if (isSignUpMode) {
-                // Criar Conta no Supabase
+                // Criar conta no Supabase
                 const { data, error } = await supabaseClient.auth.signUp({ email, password });
                 if (error) throw error;
-                alert("Registo efetuado! Verifica o teu email para confirmares a conta antes de entrar.");
-                btnToggleAuth.click(); // Volta para o ecrã de Login após registar
+                showNotification("Registo efetuado! Verifica o teu email para confirmares a conta antes de entrar.", "success");
+                btnToggleAuth.click();  // Volta para o ecrã de Login após registar
             } else {
                 // Iniciar Sessão no Supabase
                 const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -96970,7 +97040,7 @@ if (loginForm) {
             }
         } catch (error) {
             console.error("Erro na autenticação:", error);
-            alert("Erro: " + error.message);
+            showNotification(error.message, "error");
         } finally {
             btnAuthPrimary.disabled = false;
             btnAuthPrimary.textContent = isSignUpMode ? "Registar" : "Entrar";
@@ -97012,3 +97082,44 @@ if (btnSignout) {
         if (error) console.error("Erro ao terminar sessão:", error);
     });
 }
+// Motor Inteligente do Sistema de Notificações Customizadas
+window.showNotification = function(message, type = 'success') {
+    let container = document.getElementById('toast-container');
+    
+    // Se o contentor de notificações não existir no HTML, o JS cria-o automaticamente
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    // Atribui o ícone com base no tipo de aviso
+    let icon = 'ℹ️';
+    if (type === 'success') icon = '✅';
+    if (type === 'warning') icon = '⚠️';
+    if (type === 'error') icon = '❌';
+    
+    toast.innerHTML = `
+        <span class="toast-icon">${icon}</span>
+        <span class="toast-message">${message}</span>
+    `;
+    
+    container.appendChild(toast);
+    
+    // Pequena pausa para ativar a transição elástica do CSS
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    
+    // Remove automaticamente a notificação após 3.5 segundos
+    setTimeout(() => {
+        toast.classList.remove('show');
+        toast.addEventListener('transitionend', () => {
+            toast.remove();
+        });
+    }, 3500);
+};

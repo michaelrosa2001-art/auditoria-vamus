@@ -875,3 +875,140 @@ input[type="file"]::file-selector-button:hover {
   color: #ef4444 !important;
   border-color: #fee2e2 !important;
 }
+/* ==========================================================================
+   CORREÇÃO DE POSICIONAMENTO DO BOTÃO EDITAR NA SIDEBAR
+   ========================================================================== */
+
+/* Força o botão Editar a voltar para dentro do fluxo do cartão */
+#listaRegistos .btn-editar {
+  position: static !important;        /* Neutraliza o posicionamento absoluto antigo */
+  display: inline-block !important;   /* Alinha-se ao lado dos outros botões */
+  
+  /* Estilo cinza-azulado elegante para combinar com o dashboard */
+  background-color: #f1f5f9 !important; 
+  color: #475569 !important;            
+  border: 1px solid #e2e8f0 !important;
+  padding: 8px 14px !important;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: var(--transition) !important;
+}
+
+#listaRegistos .btn-editar:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+/* ==========================================================================
+   SISTEMA DE NOTIFICAÇÕES (TOASTS) PREMIUM
+   ========================================================================== */
+.toast-container {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%); /* Centralizado no topo do ecrã */
+  z-index: 3000;               /* Fica acima de tudo (inclusive do login) */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+  width: 100%;
+  max-width: 440px;
+  padding: 0 20px;
+}
+
+.toast {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 14px 18px;
+  box-shadow: 0px 10px 30px rgba(15, 23, 42, 0.08); /* Sombra Gaussiana */
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateY(-24px); /* Começa acima */
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Animação elástica */
+  border-left: 4px solid var(--primary);
+}
+
+/* Quando a notificação é exibida */
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-icon {
+  font-size: 1.15rem;
+  display: flex;
+  align-items: center;
+}
+
+.toast-message {
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* 1. Sucesso (Verde-Esmeralda Suave) */
+.toast-success {
+  background-color: #f0fdf4 !important;
+  border-left-color: #10b981 !important;
+  border-color: #d1fae5 !important;
+}
+.toast-success .toast-message { color: #065f46 !important; }
+
+/* 2. Aviso (Amber/Amarelo Suave) */
+.toast-warning {
+  background-color: #fffbeb !important;
+  border-left-color: #f59e0b !important;
+  border-color: #fef3c7 !important;
+}
+.toast-warning .toast-message { color: #b45309 !important; }
+
+/* 3. Erro (Red/Rosa Suave) */
+.toast-error {
+  background-color: #fef2f2 !important;
+  border-left-color: #ef4444 !important;
+  border-color: #fee2e2 !important;
+}
+.toast-error .toast-message { color: #991b1b !important; }
+/* ==========================================================================
+   GRAVAÇÃO GPS EM TEMPO REAL (LEAFLET MAP)
+   ========================================================================== */
+.btn-gps-start {
+  background-color: var(--primary-light) !important;
+  color: var(--primary) !important;
+  border: 1px solid var(--primary) !important;
+  width: 100%;
+  padding: 14px;
+  font-family: inherit;
+  font-weight: 600;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-gps-start:hover {
+  background-color: var(--primary) !important;
+  color: #ffffff !important;
+}
+
+/* Botão no estado ativo (Parar Gravação) */
+.btn-gps-stop {
+  background-color: #fef2f2 !important;
+  color: #ef4444 !important;
+  border: 1px solid #fee2e2 !important;
+  width: 100%;
+  padding: 14px;
+  font-family: inherit;
+  font-weight: 600;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-gps-stop:hover {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+}

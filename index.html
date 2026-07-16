@@ -4,7 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ficha de Avaliacao Vamus</title>
+
+<link rel="icon" type="image/png" href="icon.png">
 <link rel="stylesheet" href="style.css">
+<!-- Biblioteca Leaflet.js para Mapas Interativos Gratuitos -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <!-- Ligação ao Manifesto da App -->
 <link rel="manifest" href="manifest.json">
@@ -359,10 +364,15 @@ table.tabela-paragens input { padding: 4px; font-size: 12px; width: 100%; box-si
             <img id="preview_rota_vamus" class="foto-preview-mini">
         </div>
         <div>
-            <label>Rota Samsung Cycling (anexar imagem):</label>
-            <input type="file" id="samsung_cycling" accept="image/*" capture="environment">
-            <img id="preview_samsung_cycling" class="foto-preview-mini">
-        </div>
+    <label>Gravação de Rota em Tempo Real (GPS do Autocarro):</label>
+    <div class="map-tracking-container">
+        <!-- Contentor onde o mapa interativo do percurso será desenhado -->
+        <div id="mapa-tracking" style="height: 260px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 12px; z-index: 1;"></div>
+        
+        <!-- Botão de Iniciar/Parar Gravação GPS -->
+        <button type="button" id="btn-toggle-gps" class="btn-gps-start">▶ Iniciar Gravação de Rota (GPS)</button>
+    </div>
+</div>
     </div>
 
     <div>
