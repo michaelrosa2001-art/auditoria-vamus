@@ -1,0 +1,684 @@
+/* Importação de fonte premium */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ==========================================================================
+   VARIÁVEIS DE DESIGN (Inspirado no Dashboard de Referência)
+   ========================================================================== */
+:root {
+  --primary: #00a896;         /* Verde-petróleo oficial Vamus */
+  --primary-dark: #0f172a;    /* Tom Slate/Cinza quase preto para textos */
+  --primary-light: #f0fdfa;   /* Fundo muito suave para seleções */
+  --bg-main: #f5f7fa;         /* Fundo cinza-claro levemente azulado (idêntico à imagem) */
+  --bg-card: #ffffff;         /* Cartões brancos puros */
+  --text-main: #1e293b;       /* Texto principal */
+  --text-muted: #94a3b8;      /* Cinza suave para labels */
+  --border-color: #f1f5f9;    /* Divisórias extremamente discretas */
+  
+  /* Sombras Gaussianas (Efeito desfocado e leve da imagem) */
+  --shadow-gaussian: 0px 16px 36px rgba(148, 163, 184, 0.08);
+  --shadow-btn: 0px 10px 20px rgba(0, 168, 150, 0.15);
+  
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==========================================================================
+   RESET E BASE
+   ========================================================================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  max-width: 900px; 
+  margin: 40px auto;
+  padding: 0 24px;
+}
+
+/* Título Geral (Ficha de Avaliação) */
+h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  text-align: center;
+  margin-top: 36px;
+  margin-bottom: 36px;
+  letter-spacing: -0.5px;
+}
+
+/* ==========================================================================
+   HEADER PRINCIPAL (STICKY & BLUR)
+   ========================================================================== */
+.main-header {
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px); /* Efeito vidro jateado */
+  border-bottom: 1px solid var(--border-color);
+  z-index: 999;
+}
+
+.header-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-vamus {
+  color: var(--primary);
+  text-transform: lowercase;
+  font-weight: 800;
+  font-size: 1.4rem;
+  letter-spacing: -0.5px;
+}
+
+.logo-subtitle {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.85rem;
+  border-left: 2px solid var(--border-color);
+  padding-left: 10px;
+}
+
+/* ==========================================================================
+   CARTÕES (CARDS) - ULTRA CLEAN
+   ========================================================================== */
+.card {
+  background: var(--bg-card);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  border-radius: 20px; /* Cantos muito arredondados como na imagem */
+  padding: 36px;
+  margin-bottom: 28px;
+  box-shadow: var(--shadow-gaussian); /* Sombra difusa e elegante */
+  transition: var(--transition);
+}
+
+.card, 
+.aviso-edicao, 
+.card-auditoria, 
+[style*="background: #e9ecef"],
+[style*="background: rgb(233, 236, 239)"] {
+  max-width: 900px;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Títulos de Secção Minimalistas (Em vez de barras pesadas) */
+.section-title {
+  background: none !important;
+  box-shadow: none !important;
+  color: var(--primary-dark) !important;
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+  padding: 0 !important;
+  margin-bottom: 28px !important;
+  margin-top: 10px !important;
+  border-left: 4px solid var(--primary) !important; /* Linha de destaque minimalista */
+  padding-left: 14px !important;
+  display: flex;
+  align-items: center;
+  letter-spacing: -0.3px;
+}
+
+/* Labels e Textos Auxiliares */
+label, .form-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 8px;
+  margin-top: 16px;
+}
+
+/* ==========================================================================
+   CAMPOS DE FORMULÁRIO (INPUTS)
+   ========================================================================== */
+input[type="text"],
+input[type="date"],
+input[type="time"],
+select,
+textarea {
+  width: 100%;
+  padding: 14px 18px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  color: var(--text-main);
+  background-color: #f8fafc; /* Fundo levemente acinzentado */
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  transition: var(--transition);
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  background-color: #ffffff;
+  box-shadow: 0px 8px 24px rgba(0, 168, 150, 0.05); /* Brilho suave */
+}
+
+/* Botões de Seleção (Radios) Estilo Tátil */
+.radio-group {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 14px 18px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.radio-option input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.radio-option:hover {
+  border-color: var(--primary);
+  background-color: var(--primary-light);
+  box-shadow: 0px 8px 20px rgba(0, 168, 150, 0.04);
+}
+
+/* Input de Ficheiro (Custom File Selector) */
+input[type="file"] {
+  padding: 10px;
+  background-color: #f8fafc;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+input[type="file"]::file-selector-button {
+  background-color: #ffffff;
+  color: var(--primary);
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-right: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  transition: var(--transition);
+}
+
+input[type="file"]::file-selector-button:hover {
+  background-color: var(--primary-light);
+  border-color: var(--primary);
+}
+
+/* Miniaturas e Previews */
+.foto-preview-mini {
+  max-height: 70px;
+  margin-top: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  object-fit: cover;
+}
+
+/* ==========================================================================
+   BOTÃO DO PAINEL (Flutuante com Sombra Gaussiana)
+   ========================================================================== */
+.hamburger-btn {
+  position: relative;
+  background-color: #ffffff; /* Círculo branco */
+  width: 46px;
+  height: 46px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%; /* Círculo perfeito */
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  /* Sombra Gaussiana Suave de Destaque */
+  box-shadow: 0px 8px 24px rgba(0, 168, 150, 0.15), 0px 2px 6px rgba(0, 0, 0, 0.04);
+  transition: var(--transition);
+}
+
+/* Novo estilo para o ícone de Ficha */
+.icon-ficha {
+  color: var(--primary); /* Cor verde-petróleo da Vamus */
+  transition: var(--transition);
+}
+
+/* Efeito ao passar o rato (hover) */
+.hamburger-btn:hover {
+  background-color: var(--primary-light);
+  transform: translateY(-2px);
+  box-shadow: 0px 12px 28px rgba(0, 168, 150, 0.22);
+}
+
+.hamburger-btn:hover .icon-ficha {
+  color: var(--primary-dark);
+  transform: scale(1.08); /* Zoom micro-interativo elegante */
+}
+
+
+
+.hamburger-btn:hover {
+  background-color: var(--primary-light);
+  transform: translateY(-2px);
+  box-shadow: 0px 12px 28px rgba(0, 168, 150, 0.22);
+}
+
+/* ==========================================================================
+   PAINEL LATERAL (SIDEBAR)
+   ========================================================================== */
+.sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 420px;
+  max-width: 100%;
+  height: 100%;
+  background-color: var(--bg-card);
+  box-shadow: -12px 0 36px rgba(15, 23, 42, 0.05);
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sidebar.active {
+  transform: translateX(0);
+}
+
+.sidebar-header {
+  padding: 24px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar-header h2 {
+  font-size: 1.2rem;
+  margin: 0;
+  text-align: left;
+}
+
+.close-btn {
+  background: none;
+  font-size: 28px;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: #ef4444;
+}
+
+.sidebar-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(15, 23, 42, 0.2);
+  backdrop-filter: blur(8px); /* Blur de alta qualidade */
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ==========================================================================
+   REGISTO MANUAL & CONTADORES
+   ========================================================================== */
+.manual-register-box {
+  background-color: #f8fafc;
+  border: 1px solid var(--border-color);
+  padding: 28px;
+  border-radius: 16px;
+  margin-top: 24px;
+}
+
+.manual-register-box h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pax-counter-section {
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.pax-section-title {
+  font-weight: 700 !important;
+  color: var(--primary-dark) !important;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+  margin-top: 0 !important;
+  margin-bottom: 16px !important;
+}
+
+.pag-linha-manual {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px dashed var(--border-color);
+}
+
+.pag-linha-manual:last-of-type {
+  border-bottom: none;
+}
+
+.pag-label {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.counter-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-mini {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border: 1px solid var(--border-color);
+  background-color: #ffffff;
+  color: var(--text-main);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  transition: var(--transition);
+}
+
+.btn-mini:hover {
+  background-color: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.pag-valor {
+  font-size: 0.95rem;
+  font-weight: 700;
+  min-width: 24px;
+  text-align: center;
+  color: var(--primary-dark);
+}
+
+.total-pax {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-align: right;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
+}
+
+.btn-add {
+  background-color: var(--primary-dark);
+  color: #ffffff;
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-top: 16px;
+  box-shadow: 0px 4px 12px rgba(15, 23, 42, 0.1);
+  transition: var(--transition);
+}
+
+.btn-add:hover {
+  background-color: var(--primary);
+  transform: translateY(-1.5px);
+  box-shadow: 0px 8px 18px rgba(0, 168, 150, 0.15);
+}
+
+.sub-lista {
+  margin-top: 16px;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 14px;
+  min-height: 50px;
+  font-size: 0.85rem;
+}
+
+/* ==========================================================================
+   BOTÕES DE AÇÃO PRINCIPAIS (SUBMIT)
+   ========================================================================== */
+.action-buttons-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.btn-submit {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #ffffff;
+  width: 100%;
+  padding: 16px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 12px;
+  box-shadow: var(--shadow-btn);
+  transition: var(--transition);
+}
+
+.btn-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0px 14px 28px rgba(0, 168, 150, 0.25);
+}
+
+.btn-cancelar-edicao {
+  background-color: #ef4444;
+  color: #ffffff;
+  width: 100%;
+  padding: 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: 12px;
+  transition: var(--transition);
+}
+
+.btn-cancelar-edicao:hover {
+  background-color: #dc2626;
+}
+
+/* Tabelas */
+#painelTabelaHorario, 
+#painelTabelaHorario table {
+  max-width: 100%;
+  margin: 15px auto;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.01);
+}
+
+#painelTabelaHorario th {
+  background-color: #f8fafc;
+  color: var(--primary-dark);
+  padding: 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* ==========================================================================
+   GRID RESPONSIVO
+   ========================================================================== */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    margin: 20px auto;
+    padding: 0 16px;
+  }
+
+  .card {
+    padding: 24px;
+    border-radius: 16px;
+  }
+
+  h2 {
+    font-size: 1.3rem;
+  }
+
+  .logo-subtitle {
+    display: none;
+  }
+
+  .sidebar {
+    width: 100%;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+/* ==========================================================================
+   CORREÇÃO DE DESIGN: EXPORTAÇÃO NA SIDEBAR (FORÇAR ASPECTO CLEAN)
+   ========================================================================== */
+
+/* 1. O contentor ganha um fundo cinza muito suave para se destacar do branco da sidebar */
+.sidebar-export-box {
+  background-color: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  padding: 24px !important;
+  margin-bottom: 20px !important;
+  box-shadow: none !important;
+}
+
+/* 2. O título ganha a fonte correta com o traço vertical esmeralda */
+.sidebar-section-title {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important; /* Slate 900 */
+  margin-bottom: 16px !important;
+  border-left: 3px solid #10b981 !important; /* Destaque esmeralda */
+  padding-left: 10px !important;
+  text-transform: none !important;
+  letter-spacing: -0.2px !important;
+}
+
+/* 3. O botão recupera o gradiente esmeralda moderno e a sombra difusa (Gaussian) */
+.sidebar-export-box .btn-excel {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 12px !important;
+  padding: 14px 18px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 0.88rem !important;
+  box-shadow: 0px 8px 20px rgba(16, 185, 129, 0.18) !important; /* Sombra Gaussiana verde */
+  cursor: pointer !important;
+  transition: all 0.25s ease-out !important;
+  display: block !important;
+  width: 100% !important;
+  margin-bottom: 14px !important;
+}
+
+.sidebar-export-box .btn-excel:hover {
+  transform: translateY(-1.5px) !important;
+  box-shadow: 0px 12px 24px rgba(16, 185, 129, 0.28) !important;
+}
+
+/* 4. O aviso ganha o fundo esmeralda ultra suave e a linha lateral */
+.sidebar-export-box .aviso-exportar {
+  background-color: #f0fdf4 !important; /* Fundo esmeralda suave */
+  border-left: 3px solid #10b981 !important;
+  color: #065f46 !important; /* Texto legível */
+  padding: 12px 14px !important;
+  border-radius: 8px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.78rem !important;
+  line-height: 1.4 !important;
+  font-weight: 500 !important;
+  display: block !important;
+  text-align: left !important;
+}
+
+/* 5. Ajuste fino na linha divisória da sidebar */
+.sidebar-divider {
+  border: none !important;
+  height: 1px !important;
+  background-color: #e2e8f0 !important;
+  margin: 24px 0 !important;
+}
+/* Estilo para o novo ícone SVG de Ficha */
+.icon-ficha {
+  color: var(--primary); /* Cor oficial Vamus no estado normal */
+  transition: var(--transition);
+}
+
+/* Quando o utilizador passa o rato sobre o botão circular */
+.hamburger-btn:hover .icon-ficha {
+  color: var(--primary-dark); /* Torna-se ligeiramente mais escura */
+  transform: scale(1.08);     /* Faz um zoom micro-interativo muito elegante */
+}
