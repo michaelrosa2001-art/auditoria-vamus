@@ -96727,6 +96727,35 @@ window.editarFicha = function(i) {
 
   renderListaManual();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  // === ADICIONAR ESTE BLOCO NO FINAL DA FUNÇÃO EDITARFICHA (ANTES DO FECHO '}') ===
+  if (f.samsung_cycling && Array.isArray(f.samsung_cycling) && f.samsung_cycling.length > 0) {
+      inicializarMapaTracking(); // Garante que o mapa está ativo no ecrã
+      
+      // Copia as coordenadas salvas para a nossa variável de controlo ativo
+      coordenadasRota = [...f.samsung_cycling]; 
+      
+      // Desenha a linha da rota guardada no mapa
+      pathLine.setLatLngs(coordenadasRota);
+      
+      // Ajusta o zoom do mapa automaticamente para mostrar toda a rota percorrida!
+      mapaTracking.fitBounds(pathLine.getBounds(), { padding: [20, 20] });
+      
+      // Altera o texto do botão para indicar que a rota está visível
+      const btnToggleGps = document.getElementById('btn-toggle-gps');
+      if (btnToggleGps) {
+          btnToggleGps.textContent = "🗺️ Rota GPS Carregada";
+          btnToggleGps.className = "btn-gps-start"; // Mantém o estilo verde-petróleo suave
+      }
+  } else {
+      // Se a ficha editada não tiver rota gravada, limpa o mapa
+      coordenadasRota = [];
+      if (pathLine) pathLine.setLatLngs([]);
+      const btnToggleGps = document.getElementById('btn-toggle-gps');
+      if (btnToggleGps) {
+          btnToggleGps.textContent = "▶ Iniciar Gravação de Rota (GPS)";
+          btnToggleGps.className = "btn-gps-start";
+      }
+  }
 };
 
 window.cancelarEdicao = function() {
@@ -96789,6 +96818,16 @@ function limparFormularioCompleto() {
   paragensAtuais = [];
   document.getElementById("painelTabelaHorario").innerHTML = "";
   document.getElementById("painelParagens").innerHTML = `<em style="color: #6c757d;">Nenhuma paragem manual registada nesta viagem.</em>`;
+  // Adiciona estas linhas dentro da tua função limparFormularioCompleto():
+coordenadasRota = []; // Limpa a memória das coordenadas
+if (pathLine) {
+    pathLine.setLatLngs([]); // Remove a linha desenhada no mapa
+}
+const btnToggleGps = document.getElementById('btn-toggle-gps');
+if (btnToggleGps) {
+    btnToggleGps.textContent = "▶ Iniciar Gravação de Rota (GPS)";
+    btnToggleGps.className = "btn-gps-start";
+}
 }
 
 // 9. Exportação de Dados para Excel (ExcelJS com Imagens Embutidas)
