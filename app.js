@@ -96070,16 +96070,16 @@ let watchId = null;
 let coordenadasRota = []; // Guarda o histórico de posições [lat, lng]
 let isTrackingGps = false;
 
-const configFotos = [
-  { inputId: "matricula_foto", previewId: "preview_matricula" },
-  { inputId: "rota_vamus", previewId: "preview_rota_vamus" },
-  { inputId: "foto", previewId: "preview" }
+const configFotosDuplas = [
+  { galeriaId: "matricula_foto_galeria", cameraId: "matricula_foto_camera", previewId: "preview_matricula", key: "matricula_foto" },
+  { galeriaId: "rota_vamus_galeria", cameraId: "rota_vamus_camera", previewId: "preview_rota_vamus", key: "rota_vamus" },
+  { galeriaId: "foto_galeria", cameraId: "foto_camera", previewId: "preview", key: "foto" }
 ];
 
 // 3. Inicialização ao Carregar o DOM
 document.addEventListener("DOMContentLoaded", () => {
   povoarSeletorCarreiras();
-  configurarListenersImagens();
+  configurarListenersImagensDuplas();
   renderFichasGuardadas();
 
   // Monitorização dinâmica da alteração do seletor de carreiras
@@ -96363,26 +96363,30 @@ window.eliminarParagemManual = function(idx) {
 };
 
 // 7. Processamento das Evidências Fotográficas (Base64)
-function configurarListenersImagens() {
-  configFotos.forEach(item => {
-    const el = document.getElementById(item.inputId);
-    if (el) {
-      el.addEventListener("change", (e) => {
-        const file = e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            fotosAtuais[item.inputId] = event.target.result;
-            const preview = document.getElementById(item.previewId);
-            if (preview) {
-              preview.src = event.target.result;
-              preview.style.display = "block";
-            }
-          };
-          reader.readAsDataURL(file);
-        }
-      });
-    }
+function configurarListenersImagensDuplas() {
+  configFotosDuplas.forEach(item => {
+    const galeriaInput = document.getElementById(item.galeriaId);
+    const cameraInput = document.getElementById(item.cameraId);
+    const previewImg = document.getElementById(item.previewId);
+
+    const tratarSelecaoFicheiro = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (previewImg) {
+            previewImg.src = event.target.result;
+            previewImg.style.display = 'block';
+          }
+          // Guarda o ficheiro lido em formato base64 na tua variável de estado original
+          fotosAtuais[item.key] = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
+    if (galeriaInput) galeriaInput.addEventListener('change', tratarSelecaoFicheiro);
+    if (cameraInput) cameraInput.addEventListener('change', tratarSelecaoFicheiro);
   });
 }
 // ==========================================
@@ -96392,58 +96396,132 @@ function inicializarMapaTracking() {
     const mapContainer = document.getElementById('mapa-tracking');
     if (!mapContainer || mapaTracking) return;
 
-    mapaTracking = L.map('mapa-tracking').setView([37.0176, -7.9304], 13);
+    mapaTracking = L.map('mapa-tracking', { preferCanvas: true }).setView([37.0176, -7.9304], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
+        attribution: '© OpenStreetMap contributors',
+        crossOrigin: '' // <--- ADICIONA ESTA LINHA EXATAMENTE AQUI!
     }).addTo(mapaTracking);
 
     pathLine = L.polyline([], { color: '#00a896', weight: 5, opacity: 0.85 }).addTo(mapaTracking);
 }
 
+// ==========================================
+// OUVINTE DO BOTÃO GPS (GRAVAÇÃO E CAPTURA DE ECRÃ)
+// ==========================================
 const btnToggleGps = document.getElementById('btn-toggle-gps');
 if (btnToggleGps) {
     btnToggleGps.addEventListener('click', () => {
-        inicializarMapaTracking();
+        inicializarMapaTracking(); // Garante o mapa carregado na primeira interação
         
         if (!isTrackingGps) {
+            // === INICIAR GRAVAÇÃO GPS ===
             if (!navigator.geolocation) {
                 showNotification("O teu dispositivo não suporta Geolocalização por GPS.", "error");
                 return;
             }
             
-            coordenadasRota = [];     
-            pathLine.setLatLngs([]);   
+            coordenadasRota = [];     // Limpa rotas antigas
+            pathLine.setLatLngs([]);   // Limpa a linha no mapa
             isTrackingGps = true;
             
             btnToggleGps.textContent = "⏹ Parar Gravação de Rota (GPS)";
             btnToggleGps.className = "btn-gps-stop";
             showNotification("Gravação de rota GPS iniciada!", "success");
             
+            // Ouve as coordenadas GPS em tempo real do telemóvel
             watchId = navigator.geolocation.watchPosition(
                 (position) => {
                     const { latitude, longitude } = position.coords;
                     const novoPonto = [latitude, longitude];
                     
-                    coordenadasRota.push(novoPonto); 
-                    pathLine.addLatLng(novoPonto);   
+                    coordenadasRota.push(novoPonto); // Adiciona ao histórico da rota
+                    pathLine.addLatLng(novoPonto);   // Atualiza o percurso no mapa
+                    
+                    // Centraliza o mapa
                     mapaTracking.setView(novoPonto, 16);
                 },
                 (error) => {
                     console.error("Erro ao obter posição GPS:", error);
-                    showNotification("Erro no sinal GPS. Garante que ativaste a localização no telemóvel.", "warning");
+                    showNotification("Erro no sinal GPS. Garante que ativaste a localização.", "warning");
                 },
                 { enableHighAccuracy: true, maximumAge: 0, timeout: 8000 }
             );
         } else {
+            // === PARAR GRAVAÇÃO GPS ===
             isTrackingGps = false;
             if (watchId) {
-                navigator.geolocation.clearWatch(watchId);
+                navigator.geolocation.clearWatch(watchId); // Desliga o GPS
             }
             
             btnToggleGps.textContent = "▶ Iniciar Gravação de Rota (GPS)";
             btnToggleGps.className = "btn-gps-start";
-            showNotification("Rota gravada e associada a este relatório!", "success");
+            
+            showNotification("Percurso concluído! A gerar imagem do mapa...", "warning");
+
+            // Pequena pausa (800ms) para o mapa e a linha esmeralda assentarem
+            setTimeout(() => {
+                const mapaElement = document.getElementById('mapa-tracking');
+                if (mapaElement) {
+                    
+                    // === TRUQUE DE COMPATIBILIDADE LEAFLET / HTML2CANVAS ===
+                    // Desativa temporariamente a aceleração 3D do Leaflet para o html2canvas ler as imagens
+                    const mapPane = document.querySelector('.leaflet-map-pane');
+                    let originalTransform = "";
+                    if (mapPane) {
+                        originalTransform = mapPane.style.transform;
+                        
+                        // Extrai os valores de translação da matriz de estilos calculada pelo navegador
+                        const transformMatrix = window.getComputedStyle(mapPane).transform;
+                        if (transformMatrix && transformMatrix !== 'none') {
+                            const values = transformMatrix.split('(')[1].split(')')[0].split(',');
+                            const x = parseFloat(values[4] || 0);
+                            const y = parseFloat(values[5] || 0);
+                            
+                            // Remove temporariamente o transform 3D e mapeia para top/left 2D
+                            mapPane.style.transform = 'none';
+                            mapPane.style.left = `${x}px`;
+                            mapPane.style.top = `${y}px`;
+                        }
+                    }
+                    
+                    // Tira a captura de ecrã do mapa Leaflet
+                    html2canvas(mapaElement, { 
+                        useCORS: true,
+                        allowTaint: true,
+                        logging: false
+                    }).then(canvas => {
+                        const imagemBase64 = canvas.toDataURL('image/png');
+
+                        // ==========================================
+                        // === COLA ESTE BLOCO TEMPORÁRIO DE TESTE AQUI ===
+                        // ==========================================
+                        const linkTeste = document.createElement('a');
+                        linkTeste.download = 'teste-mapa.png';
+                        linkTeste.href = imagemBase64;
+                        document.body.appendChild(linkTeste);
+                        linkTeste.click();
+                        document.body.removeChild(linkTeste);
+                        // ==========================================
+                        
+                        // Guardamos a foto gerada do mapa para o Excel
+                        fotosAtuais.samsung_cycling = imagemBase64;
+                        
+                        showNotification("Imagem da rota gerada e anexada ao relatório!", "success");
+                    }).catch(err => {
+                        console.error("Erro ao gerar captura do mapa:", err);
+                        showNotification("Não foi possível gerar a imagem do mapa, mas o percurso foi salvo.", "warning");
+                    }).finally(() => {
+                        // === RESTAURAR O ESTADO ORIGINAL 3D DO LEAFLET ===
+                        // Isto garante que o mapa continua fluido e interativo para o utilizador
+                        if (mapPane) {
+                            mapPane.style.transform = originalTransform;
+                            mapPane.style.left = '0px';
+                            mapPane.style.top = '0px';
+                        }
+                    });
+                }
+            }, 800);
         }
     });
 }
@@ -96500,6 +96578,8 @@ window.guardarFichaFinal = function() {
     matricula,
     km_esperados,
     km_efetuados,
+    samsung_cycling: fotosAtuais.samsung_cycling,
+    samsung_cycling_coords: coordenadasRota,
     limpeza,
     obs_limpeza,
     materiais_danificados,
@@ -96679,14 +96759,24 @@ window.editarFicha = function(i) {
     foto: f.foto || ""
   };
 
-  configFotos.forEach(item => {
-    const preview = document.getElementById(item.previewId);
-    if (preview && fotosAtuais[item.inputId]) {
-      preview.src = fotosAtuais[item.inputId];
-      preview.style.display = "block";
-    } else if (preview) {
-      preview.style.display = "none";
-    }
+  // === ADICIONA ESTE BLOCO DENTRO DE EDITARFICHA() PARA CARREGAR AS MINIATURAS CORRETAMENTE ===
+  configFotosDuplas.forEach(item => {
+      const val = f[item.key]; // Lê o valor guardado na ficha (Ex: f["matricula_foto"])
+      const preview = document.getElementById(item.previewId);
+      
+      if (val) {
+          if (preview) {
+              preview.src = val;
+              preview.style.display = "block";
+          }
+          fotosAtuais[item.key] = val; // Preserva a imagem nas variáveis de controlo de gravação
+      } else {
+          if (preview) {
+              preview.src = "";
+              preview.style.display = "none";
+          }
+          fotosAtuais[item.key] = "";
+      }
   });
 
   paragensAtuais = JSON.parse(JSON.stringify(f.paragens || []));
@@ -96824,13 +96914,20 @@ function limparFormularioCompleto() {
   document.getElementById("wifi").value = "";
   document.getElementById("comentarios_gerais").value = "";
 
-  configFotos.forEach(item => {
-    document.getElementById(item.inputId).value = "";
-    const p = document.getElementById(item.previewId);
-    if (p) {
-      p.src = "";
-      p.style.display = "none";
-    }
+  // === ADICIONA ESTA LIMPEZA DE IMAGENS ATUALIZADA DENTRO DE limparFormularioCompleto() ===
+  configFotosDuplas.forEach(item => {
+      // Limpa os dois inputs de ficheiro (Galeria e Câmara)
+      const galeriaInput = document.getElementById(item.galeriaId);
+      const cameraInput = document.getElementById(item.cameraId);
+      if (galeriaInput) galeriaInput.value = "";
+      if (cameraInput) cameraInput.value = "";
+      
+      // Limpa e esconde as miniaturas de pré-visualização das imagens
+      const preview = document.getElementById(item.previewId);
+      if (preview) {
+          preview.src = "";
+          preview.style.display = "none";
+      }
   });
 
   fotosAtuais = { matricula_foto: "", rota_vamus: "", samsung_cycling: "", foto: "" };
@@ -96964,7 +97061,7 @@ window.exportarParaExcel = async function() {
     sheetFotos.getRow(rowIdx).height = 150;
 
     const embutirImagemNoExcel = (base64String, colIndex) => {
-      if (!base64String) return;
+      if (typeof base64String !== 'string' || !base64String.includes('base64')) return;
       try {
         const match = base64String.match(/^data:image\/(\w+);base64,/);
         const extensao = match ? match[1] : "png";
