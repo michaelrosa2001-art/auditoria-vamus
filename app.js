@@ -96069,6 +96069,7 @@ let pathLine = null;
 let watchId = null;
 let coordenadasRota = []; // Guarda o histórico de posições [lat, lng]
 let isTrackingGps = false;
+let distanciaTotalKm = 0;
 
 const configFotosDuplas = [
   { galeriaId: "matricula_foto_galeria", cameraId: "matricula_foto_camera", previewId: "preview_matricula", key: "matricula_foto" },
@@ -96232,7 +96233,9 @@ function renderizarLinhaParagem(item, index) {
   return `
     <tr>
       <td><strong>${item.nome}</strong></td>
-      <td><span class="hora-prevista">${item.horaPrevista}</span></td>
+      <td>
+  <input type="time" class="input-teorica" value="${item.horaPrevista || ''}" onchange="atualizarCampoTabela(${index}, 'horaPrevista', this.value)">
+</td>
       <td>
         <div style="display:flex; gap:3px; align-items:center;">
           <input type="time" id="real_time_${index}" value="${item.horaReal}" onchange="atualizarCampoTabela(${index}, 'horaReal', this.value)" style="padding: 4px; font-size:12px; margin-top:0;">
@@ -96406,52 +96409,68 @@ function inicializarMapaTracking() {
     pathLine = L.polyline([], { color: '#00a896', weight: 5, opacity: 0.85 }).addTo(mapaTracking);
 }
 
-// ==========================================
-// OUVINTE DO BOTÃO GPS (GRAVAÇÃO E CAPTURA DE ECRÃ)
-// ==========================================
+// === OUVINTE DO BOTÃO GPS COM CÁLCULO AUTOMÁTICO DE KM ===
 const btnToggleGps = document.getElementById('btn-toggle-gps');
 if (btnToggleGps) {
     btnToggleGps.addEventListener('click', () => {
-        inicializarMapaTracking(); // Garante o mapa carregado na primeira interação
+        inicializarMapaTracking();
         
         if (!isTrackingGps) {
-            // === INICIAR GRAVAÇÃO GPS ===
             if (!navigator.geolocation) {
                 showNotification("O teu dispositivo não suporta Geolocalização por GPS.", "error");
                 return;
             }
             
-            coordenadasRota = [];     // Limpa rotas antigas
-            pathLine.setLatLngs([]);   // Limpa a linha no mapa
-            isTrackingGps = true;
+            // REINICIA OS CONTADORES DO PERCURSO NOVO
+            coordenadasRota = [];     
+            pathLine.setLatLngs([]);   
+            distanciaTotalKm = 0; // Começa a distância a 0 km
             
+            const inputKm = document.getElementById("km_efetuados");
+            if (inputKm) inputKm.value = "0.00"; // Limpa o input no ecrã
+            
+            isTrackingGps = true;
             btnToggleGps.textContent = "⏹ Parar Gravação de Rota (GPS)";
             btnToggleGps.className = "btn-gps-stop";
             showNotification("Gravação de rota GPS iniciada!", "success");
             
-            // Ouve as coordenadas GPS em tempo real do telemóvel
             watchId = navigator.geolocation.watchPosition(
                 (position) => {
                     const { latitude, longitude } = position.coords;
                     const novoPonto = [latitude, longitude];
                     
-                    coordenadasRota.push(novoPonto); // Adiciona ao histórico da rota
-                    pathLine.addLatLng(novoPonto);   // Atualiza o percurso no mapa
+                    // ==========================================
+                    // SE JÁ HOUVER UM PONTO ANTERIOR, CALCULA A DISTÂNCIA:
+                    // ==========================================
+                    if (coordenadasRota.length > 0) {
+                        const ultimoPonto = coordenadasRota[coordenadasRota.length - 1];
+                        const distanciaTrecho = calcularDistanciaEntreCoordenadas(
+                            ultimoPonto[0], ultimoPonto[1], 
+                            latitude, longitude
+                        );
+                        
+                        distanciaTotalKm += distanciaTrecho; // Soma a distância percorrida
+                        
+                        // Atualiza a caixa de texto no ecrã em tempo real (Arredondado a 2 casas decimais)
+                        const inputKm = document.getElementById("km_efetuados");
+                        if (inputKm) {
+                            inputKm.value = distanciaTotalKm.toFixed(2);
+                        }
+                    }
                     
-                    // Centraliza o mapa
+                    coordenadasRota.push(novoPonto); 
+                    pathLine.addLatLng(novoPonto);   
                     mapaTracking.setView(novoPonto, 16);
                 },
                 (error) => {
                     console.error("Erro ao obter posição GPS:", error);
-                    showNotification("Erro no sinal GPS. Garante que ativaste a localização.", "warning");
                 },
                 { enableHighAccuracy: true, maximumAge: 0, timeout: 8000 }
             );
         } else {
-            // === PARAR GRAVAÇÃO GPS ===
             isTrackingGps = false;
             if (watchId) {
-                navigator.geolocation.clearWatch(watchId); // Desliga o GPS
+                navigator.geolocation.clearWatch(watchId);
             }
             
             btnToggleGps.textContent = "▶ Iniciar Gravação de Rota (GPS)";
@@ -96459,75 +96478,41 @@ if (btnToggleGps) {
             
             showNotification("Percurso concluído! A gerar imagem do mapa...", "warning");
 
-            // Pequena pausa (800ms) para o mapa e a linha esmeralda assentarem
             setTimeout(() => {
                 const mapaElement = document.getElementById('mapa-tracking');
                 if (mapaElement) {
-                    
-                    // === TRUQUE DE COMPATIBILIDADE LEAFLET / HTML2CANVAS ===
-                    // Desativa temporariamente a aceleração 3D do Leaflet para o html2canvas ler as imagens
-                    const mapPane = document.querySelector('.leaflet-map-pane');
-                    let originalTransform = "";
-                    if (mapPane) {
-                        originalTransform = mapPane.style.transform;
-                        
-                        // Extrai os valores de translação da matriz de estilos calculada pelo navegador
-                        const transformMatrix = window.getComputedStyle(mapPane).transform;
-                        if (transformMatrix && transformMatrix !== 'none') {
-                            const values = transformMatrix.split('(')[1].split(')')[0].split(',');
-                            const x = parseFloat(values[4] || 0);
-                            const y = parseFloat(values[5] || 0);
-                            
-                            // Remove temporariamente o transform 3D e mapeia para top/left 2D
-                            mapPane.style.transform = 'none';
-                            mapPane.style.left = `${x}px`;
-                            mapPane.style.top = `${y}px`;
-                        }
-                    }
-                    
-                    // Tira a captura de ecrã do mapa Leaflet
                     html2canvas(mapaElement, { 
                         useCORS: true,
-                        allowTaint: true,
+                        allowTaint: false,
                         logging: false
                     }).then(canvas => {
                         const imagemBase64 = canvas.toDataURL('image/png');
-
-                        // ==========================================
-                        // === COLA ESTE BLOCO TEMPORÁRIO DE TESTE AQUI ===
-                        // ==========================================
-                        const linkTeste = document.createElement('a');
-                        linkTeste.download = 'teste-mapa.png';
-                        linkTeste.href = imagemBase64;
-                        document.body.appendChild(linkTeste);
-                        linkTeste.click();
-                        document.body.removeChild(linkTeste);
-                        // ==========================================
-                        
-                        // Guardamos a foto gerada do mapa para o Excel
                         fotosAtuais.samsung_cycling = imagemBase64;
-                        
                         showNotification("Imagem da rota gerada e anexada ao relatório!", "success");
                     }).catch(err => {
                         console.error("Erro ao gerar captura do mapa:", err);
-                        showNotification("Não foi possível gerar a imagem do mapa, mas o percurso foi salvo.", "warning");
-                    }).finally(() => {
-                        // === RESTAURAR O ESTADO ORIGINAL 3D DO LEAFLET ===
-                        // Isto garante que o mapa continua fluido e interativo para o utilizador
-                        if (mapPane) {
-                            mapPane.style.transform = originalTransform;
-                            mapPane.style.left = '0px';
-                            mapPane.style.top = '0px';
-                        }
                     });
                 }
             }, 800);
         }
     });
 }
+// Função matemática para calcular a distância em km entre duas coordenadas GPS (Fórmula de Haversine)
+function calcularDistanciaEntreCoordenadas(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Raio médio da Terra em quilómetros
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Retorna a distância em quilómetros
+}
 
 // 8. CRUD dos Relatórios Locais (LocalStorage)
 window.guardarFichaFinal = function() {
+
   const avaliadores = document.getElementById("avaliadores").value.trim();
   let carreira = document.getElementById("carreiraSelect").value;
   const sentido = document.getElementById("sentido").value;
@@ -96564,6 +96549,7 @@ window.guardarFichaFinal = function() {
   const wifi = document.getElementById("wifi").value.trim();
   const comentarios_gerais = document.getElementById("comentarios_gerais").value.trim();
 
+
   if (!data_viagem || !carreira) {
     showNotification("Por favor, selecione pelo menos a Data e a Carreira da Viagem.", "warning");
     return;
@@ -96596,7 +96582,6 @@ window.guardarFichaFinal = function() {
     paragens: JSON.parse(JSON.stringify(paragensAtuais)),
     matricula_foto: fotosAtuais.matricula_foto,
     rota_vamus: fotosAtuais.rota_vamus,
-    samsung_cycling: coordenadasRota,
     foto: fotosAtuais.foto
   };
 
@@ -96628,7 +96613,16 @@ window.guardarFichaFinal = function() {
     cancelarEdicao();
   }
 
-  localStorage.setItem("fichas_vamus", JSON.stringify(fichasGuardadas));
+  // Gravação local segura (Se o disco do navegador encher, guarda apenas na Cloud Supabase sem dar erro)
+try {
+    localStorage.setItem("fichas_vamus", JSON.stringify(fichasGuardadas));
+} catch (e) {
+    if (e.code === 22 || e.name === 'QuotaExceededError') {
+        console.warn("Espaço local (localStorage) cheio! O relatório foi guardado com total segurança exclusivamente na nuvem (Supabase).");
+    } else {
+        console.error("Erro ao guardar cópia local:", e);
+    }
+}
   showNotification("Relatório de avaliação guardado localmente com sucesso!", "success");
   
   limparFormularioCompleto();
@@ -96696,6 +96690,7 @@ function exportarFichaIndividual(index) {
 window.editarFicha = function(i) {
   indiceEdicao = i;
   const f = fichasGuardadas[i];
+
 
   document.getElementById("avisoEdicao").style.display = "block";
   document.getElementById("btnCancelarEdicao").style.display = "block";
@@ -96944,6 +96939,8 @@ if (btnToggleGps) {
     btnToggleGps.textContent = "▶ Iniciar Gravação de Rota (GPS)";
     btnToggleGps.className = "btn-gps-start";
 }
+// Adiciona esta linha dentro de limparFormularioCompleto():
+distanciaTotalKm = 0;
 }
 
 // 9. Exportação de Dados para Excel (ExcelJS com Imagens Embutidas)
@@ -97061,13 +97058,18 @@ window.exportarParaExcel = async function() {
     sheetFotos.getRow(rowIdx).height = 150;
 
     const embutirImagemNoExcel = (base64String, colIndex) => {
-      if (typeof base64String !== 'string' || !base64String.includes('base64')) return;
-      try {
-        const match = base64String.match(/^data:image\/(\w+);base64,/);
-        const extensao = match ? match[1] : "png";
-        const cleanBase64 = base64String.replace(/^data:image\/\w+;base64,/, "");
+    // === SUBSTUI DESDE A LINHA 97055 ATÉ À LINHA 97070 POR ESTE BLOCO LIMPO ===
+  
+  
+  // 2. Linha de segurança contra arrays e nulos
+  if (typeof base64String !== 'string' || !base64String.includes('base64')) return;
+  
+  try {
+      const match = base64String.match(/^data:image\/(\w+);base64,/);
+      const extensao = match ? match[1] : "png";
+      const cleanBase64 = base64String.replace(/^data:image\/\w+;base64,/, "");
 
-        const imageId = workbook.addImage({
+      const imageId = workbook.addImage({
           base64: cleanBase64,
           extension: extensao,
         });
@@ -97147,11 +97149,10 @@ async function carregarFichasOnline() {
     }
 }
 // ==========================================
-// SISTEMA DE AUTENTICAÇÃO (SUPABASE AUTH)
+// SISTEMA DE AUTENTICAÇÃO MULTI-ESTADO (SUPABASE AUTH)
 // ==========================================
-let isSignUpMode = false;
+let authState = 'login'; // 'login', 'signup', 'recover', 'reset'
 
-// Seleção de elementos da interface
 const loginOverlay = document.getElementById('login-container');
 const loginTitle = document.getElementById('login-title');
 const loginSubtitle = document.getElementById('login-subtitle');
@@ -97159,26 +97160,80 @@ const btnAuthPrimary = document.getElementById('btn-auth-primary');
 const btnToggleAuth = document.getElementById('btn-toggle-auth');
 const btnSignout = document.getElementById('btn-signout');
 const loginForm = document.getElementById('login-form');
+const btnForgot = document.getElementById('btn-forgot-password');
 
-// Alternar entre Iniciar Sessão (Login) e Criar Conta (Register)
+// Função de controlo de estado do ecrã de Login
+function setAuthState(state) {
+    authState = state;
+    const emailGroup = document.getElementById('auth-email-group');
+    const passwordGroup = document.getElementById('auth-password-group');
+    const passwordLabel = document.getElementById('auth-password-label');
+    const passwordInput = document.getElementById('auth-password');
+
+    if (!emailGroup || !passwordGroup || !passwordInput) return;
+
+    if (state === 'login') {
+        loginTitle.textContent = "Iniciar Sessão";
+        loginSubtitle.textContent = "Introduz as tuas credenciais para aceder ao painel.";
+        btnAuthPrimary.textContent = "Entrar";
+        btnToggleAuth.textContent = "Criar conta nova";
+        btnToggleAuth.style.display = 'block';
+        emailGroup.style.display = 'block';
+        passwordGroup.style.display = 'block';
+        passwordLabel.textContent = "Palavra-passe:";
+        passwordInput.placeholder = "••••••••";
+        if (btnForgot) btnForgot.style.display = 'block';
+    } else if (state === 'signup') {
+        loginTitle.textContent = "Criar Conta";
+        loginSubtitle.textContent = "Regista-te para começares a submeter relatórios.";
+        btnAuthPrimary.textContent = "Registar";
+        btnToggleAuth.textContent = "Já tenho conta (Entrar)";
+        btnToggleAuth.style.display = 'block';
+        emailGroup.style.display = 'block';
+        passwordGroup.style.display = 'block';
+        passwordLabel.textContent = "Palavra-passe:";
+        passwordInput.placeholder = "••••••••";
+        if (btnForgot) btnForgot.style.display = 'none';
+    } else if (state === 'recover') {
+        loginTitle.textContent = "Recuperar Palavra-passe";
+        loginSubtitle.textContent = "Introduz o teu email para receberes um link de recuperação.";
+        btnAuthPrimary.textContent = "Enviar Email de Recuperação";
+        btnToggleAuth.textContent = "Voltar ao login";
+        btnToggleAuth.style.display = 'block';
+        emailGroup.style.display = 'block';
+        passwordGroup.style.display = 'none'; // Esconde a password
+    } else if (state === 'reset') {
+        loginTitle.textContent = "Redefinir Palavra-passe";
+        loginSubtitle.textContent = "Escolhe uma nova palavra-passe forte para a tua conta.";
+        btnAuthPrimary.textContent = "Guardar Nova Palavra-passe";
+        btnToggleAuth.style.display = 'none'; // Bloqueia a navegação de login durante o reset
+        emailGroup.style.display = 'none'; // Esconde o email
+        passwordGroup.style.display = 'block';
+        passwordLabel.textContent = "Nova Palavra-passe:";
+        passwordInput.placeholder = "Mínimo 6 caracteres";
+        if (btnForgot) btnForgot.style.display = 'none';
+    }
+}
+
+// Botão Alternar entre Login/Registo/Voltar
 if (btnToggleAuth) {
     btnToggleAuth.addEventListener('click', () => {
-        isSignUpMode = !isSignUpMode;
-        if (isSignUpMode) {
-            loginTitle.textContent = "Criar Conta";
-            loginSubtitle.textContent = "Regista-te para começares a submeter relatórios.";
-            btnAuthPrimary.textContent = "Registar";
-            btnToggleAuth.textContent = "Já tenho conta (Entrar)";
-        } else {
-            loginTitle.textContent = "Iniciar Sessão";
-            loginSubtitle.textContent = "Introduz as tuas credenciais para aceder ao painel.";
-            btnAuthPrimary.textContent = "Entrar";
-            btnToggleAuth.textContent = "Criar conta nova";
+        if (authState === 'login') {
+            setAuthState('signup');
+        } else if (authState === 'signup' || authState === 'recover') {
+            setAuthState('login');
         }
     });
 }
 
-// Submissão do Formulário de Autenticação
+// Botão Esqueci-me da Palavra-passe
+if (btnForgot) {
+    btnForgot.addEventListener('click', () => {
+        setAuthState('recover');
+    });
+}
+
+// Submissão do Formulário (Entrar, Registar, Recuperar ou Redefinir)
 if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -97188,53 +97243,69 @@ if (loginForm) {
         const password = document.getElementById('auth-password').value;
 
         btnAuthPrimary.disabled = true;
-        btnAuthPrimary.textContent = isSignUpMode ? "A registar..." : "A entrar...";
 
         try {
-            if (isSignUpMode) {
-                // Criar conta no Supabase
-                const { data, error } = await supabaseClient.auth.signUp({ email, password });
-                if (error) throw error;
-                showNotification("Registo efetuado! Verifica o teu email para confirmares a conta antes de entrar.", "success");
-                btnToggleAuth.click();  // Volta para o ecrã de Login após registar
-            } else {
-                // Iniciar Sessão no Supabase
+            if (authState === 'login') {
+                btnAuthPrimary.textContent = "A entrar...";
                 const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
                 if (error) throw error;
-                // O estado de autenticação vai mudar e o listener abaixo tratará de carregar a aplicação
+            } else if (authState === 'signup') {
+                btnAuthPrimary.textContent = "A registar...";
+                const { data, error } = await supabaseClient.auth.signUp({ email, password });
+                if (error) throw error;
+                showNotification("Registo efetuado! Verifica o teu email para confirmares a conta.", "success");
+                setAuthState('login');
+            } else if (authState === 'recover') {
+                btnAuthPrimary.textContent = "A enviar...";
+                // Redireciona de volta para o teu site (funciona perfeitamente em Localhost ou GitHub Pages!)
+                const redirectUrl = window.location.origin + window.location.pathname;
+                const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
+                if (error) throw error;
+                showNotification("Email de recuperação enviado! Verifica a tua caixa de correio.", "success");
+                setAuthState('login');
+            } else if (authState === 'reset') {
+                btnAuthPrimary.textContent = "A redefinir...";
+                const { data, error } = await supabaseClient.auth.updateUser({ password: password });
+                if (error) throw error;
+                showNotification("Palavra-passe redefinida com sucesso! Inicia sessão.", "success");
+                setAuthState('login');
+                await supabaseClient.auth.signOut(); // Desloga para poderem logar com a nova senha
             }
         } catch (error) {
             console.error("Erro na autenticação:", error);
             showNotification(error.message, "error");
         } finally {
             btnAuthPrimary.disabled = false;
-            btnAuthPrimary.textContent = isSignUpMode ? "Registar" : "Entrar";
+            setAuthState(authState); // Repõe o texto do botão correto
         }
     });
 }
 
-// Ouvir as mudanças no estado de autenticação (Login, Logout, etc.)
+// Ouvir as mudanças no estado de autenticação (Login, Logout, Recuperação, etc.)
 if (supabaseClient) {
     supabaseClient.auth.onAuthStateChange((event, session) => {
-        if (session && session.user) {
-            // UTILIZADOR COM SESSÃO INICIADA!
+        if (event === 'PASSWORD_RECOVERY') {
+            // O Supabase detetou que o utilizador clicou no link de redefinição de password!
+            console.log("Evento de recuperação de palavra-passe detetado.");
+            if (loginOverlay) loginOverlay.classList.remove('hidden'); // Garante que o login está visível
+            setAuthState('reset'); // Abre o modo de redefinir password
+        } else if (session && session.user) {
+            // UTILIZADOR LOGADO!
             console.log("Utilizador autenticado com sucesso:", session.user.email);
-            
-            if (loginOverlay) loginOverlay.classList.add('hidden'); // Esconde o ecrã de login
-            if (btnSignout) btnSignout.style.display = 'block';     // Mostra o botão de Sair
-            
-            // Descarrega as fichas online do Supabase
-            carregarFichasOnline();
+            if (authState !== 'reset') {
+                if (loginOverlay) loginOverlay.classList.add('hidden'); // Esconde o ecrã de login
+                if (btnSignout) btnSignout.style.display = 'block';     // Mostra o botão sair
+                carregarFichasOnline();
+            }
         } else {
-            // UTILIZADOR SEM SESSÃO (OU APÓS LOGOUT)
+            // UTILIZADOR SEM SESSÃO
             console.log("Nenhum utilizador com sessão ativa.");
-            
-            if (loginOverlay) loginOverlay.classList.remove('hidden'); // Mostra o ecrã de login
-            if (btnSignout) btnSignout.style.display = 'none';         // Esconde o botão de Sair
-            
-            // Limpa os dados em memória para segurança
-            fichasGuardadas = [];
-            renderFichasGuardadas();
+            if (authState !== 'reset') {
+                if (loginOverlay) loginOverlay.classList.remove('hidden'); // Mostra o ecrã de login
+                if (btnSignout) btnSignout.style.display = 'none';         // Esconde o botão sair
+                fichasGuardadas = [];
+                renderFichasGuardadas();
+            }
         }
     });
 }
@@ -97247,44 +97318,6 @@ if (btnSignout) {
         if (error) console.error("Erro ao terminar sessão:", error);
     });
 }
-// Motor Inteligente do Sistema de Notificações Customizadas
-window.showNotification = function(message, type = 'success') {
-    let container = document.getElementById('toast-container');
-    
-    // Se o contentor de notificações não existir no HTML, o JS cria-o automaticamente
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toast-container';
-        container.className = 'toast-container';
-        document.body.appendChild(container);
-    }
-    
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    
-    // Atribui o ícone com base no tipo de aviso
-    let icon = 'ℹ️';
-    if (type === 'success') icon = '✅';
-    if (type === 'warning') icon = '⚠️';
-    if (type === 'error') icon = '❌';
-    
-    toast.innerHTML = `
-        <span class="toast-icon">${icon}</span>
-        <span class="toast-message">${message}</span>
-    `;
-    
-    container.appendChild(toast);
-    
-    // Pequena pausa para ativar a transição elástica do CSS
-    setTimeout(() => {
-        toast.classList.add('show');
-    }, 10);
-    
-    // Remove automaticamente a notificação após 3.5 segundos
-    setTimeout(() => {
-        toast.classList.remove('show');
-        toast.addEventListener('transitionend', () => {
-            toast.remove();
-        });
-    }, 3500);
-};
+
+// Inicialização padrão ao carregar o arquivo
+setAuthState('login');

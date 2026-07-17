@@ -77,6 +77,7 @@ table.tabela-paragens input { padding: 4px; font-size: 12px; width: 100%; box-si
 </head>
 <body>
     <!-- Ecrã de Login/Registo Minimalista -->
+<!-- Ecrã de Login/Registo/Recuperação de Password -->
 <div id="login-container" class="login-overlay">
   <div class="login-card">
     <div class="logo" style="justify-content: center; margin-bottom: 24px;">
@@ -88,11 +89,20 @@ table.tabela-paragens input { padding: 4px; font-size: 12px; width: 100%; box-si
     <p id="login-subtitle" class="login-text-muted">Introduz as tuas credenciais para aceder ao painel.</p>
     
     <form id="login-form">
-      <label for="auth-email">Email:</label>
-      <input type="email" id="auth-email" required placeholder="exemplo@vamus.pt">
+      <!-- Grupo do Email (Fica oculto no modo de redefinir password) -->
+      <div id="auth-email-group" style="text-align: left;">
+        <label for="auth-email">Email:</label>
+        <input type="email" id="auth-email" placeholder="exemplo@vamus.pt">
+      </div>
       
-      <label for="auth-password">Palavra-passe:</label>
-      <input type="password" id="auth-password" required placeholder="••••••••">
+      <!-- Grupo da Palavra-passe (Fica oculto no modo de recuperar email) -->
+      <div id="auth-password-group" style="text-align: left;">
+        <label for="auth-password" id="auth-password-label">Palavra-passe:</label>
+        <input type="password" id="auth-password" placeholder="••••••••">
+        
+        <!-- Botão Esqueci-me da Palavra-passe (Só visível ao Iniciar Sessão) -->
+        <button type="button" id="btn-forgot-password" class="btn-forgot-password">Esqueci-me da palavra-passe</button>
+      </div>
       
       <div class="auth-buttons">
         <button type="submit" id="btn-auth-primary" class="btn-submit">Entrar</button>

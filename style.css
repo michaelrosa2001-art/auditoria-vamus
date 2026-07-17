@@ -1075,3 +1075,59 @@ input[type="file"]::file-selector-button:hover {
 .btn-attach-camera:hover .icon-camera {
   color: var(--primary-dark);
 }
+/* ==========================================================================
+   INPUTS DE TEMPO NA TABELA DE HORÁRIOS
+   ========================================================================== */
+#painelTabelaHorario input[type="time"] {
+  padding: 6px 8px !important;
+  font-size: 0.8rem !important;
+  font-family: var(--font-family) !important;
+  font-weight: 500 !important;
+  border-radius: 6px !important;
+  border: 1px solid var(--border-color) !important;
+  background-color: #ffffff !important;
+  color: var(--text-main) !important;
+  width: 96px !important; /* Tamanho ideal para o formato HH:MM */
+  text-align: center !important;
+  transition: var(--transition) !important;
+}
+
+#painelTabelaHorario input[type="time"]:focus {
+  outline: none !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(0, 168, 150, 0.1) !important;
+}
+
+/* Estilo tracejado e discreto para indicar que a hora prevista é editável */
+#painelTabelaHorario input.input-teorica {
+  background-color: #fafbfc !important;
+  color: var(--text-muted) !important;
+  border-style: dashed !important; /* Borda tracejada indica referência editável */
+}
+
+#painelTabelaHorario input.input-teorica:focus {
+  background-color: #ffffff !important;
+  color: var(--text-main) !important;
+  border-style: solid !important;
+}
+/* Link discreto para Recuperar Palavra-passe */
+.btn-forgot-password {
+  background: none !important;
+  border: none !important;
+  color: var(--text-muted) !important;
+  font-family: var(--font-family) !important;
+  font-size: 0.78rem !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  margin-top: -12px !important;
+  margin-bottom: 16px !important;
+  display: block !important;
+  text-align: right !important;
+  width: 100% !important;
+  transition: var(--transition) !important;
+}
+
+.btn-forgot-password:hover {
+  color: var(--primary) !important;
+  text-decoration: underline !important;
+}
