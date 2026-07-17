@@ -95,14 +95,25 @@ table.tabela-paragens input { padding: 4px; font-size: 12px; width: 100%; box-si
         <input type="email" id="auth-email" placeholder="exemplo@vamus.pt">
       </div>
       
-      <!-- Grupo da Palavra-passe (Fica oculto no modo de recuperar email) -->
-      <div id="auth-password-group" style="text-align: left;">
-        <label for="auth-password" id="auth-password-label">Palavra-passe:</label>
-        <input type="password" id="auth-password" placeholder="••••••••">
-        
-        <!-- Botão Esqueci-me da Palavra-passe (Só visível ao Iniciar Sessão) -->
-        <button type="button" id="btn-forgot-password" class="btn-forgot-password">Esqueci-me da palavra-passe</button>
-      </div>
+      <!-- Encontra o teu grupo da palavra-passe no index.html e substitui por este: -->
+<div id="auth-password-group" style="text-align: left;">
+  <label for="auth-password" id="auth-password-label">Palavra-passe:</label>
+  
+  <!-- Contentor para o input + olho flutuante -->
+  <div class="password-wrapper">
+    <input type="password" id="auth-password" placeholder="••••••••">
+    
+    <!-- Botão do Olho (SVG) -->
+    <button type="button" id="btn-toggle-password-visibility" class="btn-toggle-visibility" title="Mostrar/Esconder palavra-passe">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-eye">
+        <path d="M1 12s4-8 11-8 4 8 11 8-4 8-11 8-11-8-11-8z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+    </button>
+  </div>
+  
+  <button type="button" id="btn-forgot-password" class="btn-forgot-password">Esqueci-me da palavra-passe</button>
+</div>
       
       <div class="auth-buttons">
         <button type="submit" id="btn-auth-primary" class="btn-submit">Entrar</button>
@@ -115,30 +126,40 @@ table.tabela-paragens input { padding: 4px; font-size: 12px; width: 100%; box-si
  
  
  
-    <!-- ADICIONA ESTE BLOCO DO HEADER AQUI -->
-    <header class="main-header">
-      <div class="header-container">
-        <!-- Logótipo / Nome do Projeto -->
-        <div class="logo">
-          <span class="logo-vamus">vamus</span>
-          <span class="logo-subtitle">Auditoria de Carreiras</span>
-        </div>
-    
-        <div style="display: flex; gap: 12px; align-items: center;">
-  <!-- Botão de Sair que só aparece quando o utilizador está logado -->
-            <button type="button" id="btn-signout" class="btn-signout" style="display: none;">Sair</button><!-- Botão para abrir o painel lateral (Agora com ícone de Ficha de Avaliação) -->
-            <button class="hamburger-btn" id="open-sidebar" aria-label="Ver Fichas Guardadas">
-                <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="icon-ficha">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                    <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
-            </button>
-        </div>
-      </div>
-    </header>
+    <!-- Cabeçalho Principal Unificado (Sem duplicações!) -->
+<header class="main-header">
+  <div class="header-container">
+    <!-- Logótipo / Nome do Projeto -->
+    <div class="logo">
+      <span class="logo-vamus">vamus</span>
+      <span class="logo-subtitle">Auditoria de Carreiras</span>
+    </div>
+
+    <!-- Contentor Único de Botões à Direita -->
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <!-- 1. Botão do Modo Escuro -->
+      <button type="button" id="btn-toggle-darkmode" class="btn-darkmode-toggle" title="Alternar Modo Escuro/Claro">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon-darkmode">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+
+      <!-- 2. Botão Sair -->
+      <button type="button" id="btn-signout" class="btn-signout" style="display: none;">Sair</button>
+
+      <!-- 3. Botão do Painel Lateral (Com o SVG da Ficha Completo!) -->
+      <button class="hamburger-btn" id="open-sidebar" aria-label="Ver Fichas Guardadas">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="icon-ficha">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
 <h2>Avaliação da Viagem</h2>
 
 <!-- Aviso de Edição no topo (Fica fora dos cartões para ter destaque) -->

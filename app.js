@@ -21,6 +21,48 @@ try {
 } catch (err) {
     console.error("Não foi possível carregar a ligação online:", err);
 }
+// ==========================================
+// MOTOR GLOBAL DE NOTIFICAÇÕES (TOASTS)
+// ==========================================
+function showNotification(message, type = 'success') {
+    let container = document.getElementById('toast-container');
+    
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    let icon = 'ℹ️';
+    if (type === 'success') icon = '✅';
+    if (type === 'warning') icon = '⚠️';
+    if (type === 'error') icon = '❌';
+    
+    toast.innerHTML = `
+        <span class="toast-icon">${icon}</span>
+        <span class="toast-message">${message}</span>
+    `;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+        toast.addEventListener('transitionend', () => {
+            toast.remove();
+        });
+    }, 3500);
+}
+
+// Expõe também na janela global do navegador para segurança
+window.showNotification = showNotification;
 
 /**
  * Ficha de Avaliação da Viagem - Vamus Algarve
@@ -96076,7 +96118,38 @@ const configFotosDuplas = [
   { galeriaId: "rota_vamus_galeria", cameraId: "rota_vamus_camera", previewId: "preview_rota_vamus", key: "rota_vamus" },
   { galeriaId: "foto_galeria", cameraId: "foto_camera", previewId: "preview", key: "foto" }
 ];
+// ==========================================
+// MOSTRAR / ESCONDER PALAVRA-PASSE (VISIBILITY TOGGLE)
+// ==========================================
+const btnTogglePassword = document.getElementById('btn-toggle-password-visibility');
+const authPasswordInput = document.getElementById('auth-password');
 
+if (btnTogglePassword && authPasswordInput) {
+    btnTogglePassword.addEventListener('click', () => {
+        // Altera o tipo do input e substitui o ícone SVG correspondente
+        if (authPasswordInput.type === 'password') {
+            authPasswordInput.type = 'text';
+            
+            // Ícone de Olho Cortado (Esconder)
+            btnTogglePassword.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="icon-eye">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+            `;
+        } else {
+            authPasswordInput.type = 'password';
+            
+            // Ícone de Olho Aberto (Mostrar)
+            btnTogglePassword.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="icon-eye">
+                  <path d="M1 12s4-8 11-8 4 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+            `;
+        }
+    });
+}
 // 3. Inicialização ao Carregar o DOM
 document.addEventListener("DOMContentLoaded", () => {
   povoarSeletorCarreiras();
@@ -97321,3 +97394,58 @@ if (btnSignout) {
 
 // Inicialização padrão ao carregar o arquivo
 setAuthState('login');
+// ==========================================
+// CONTROLO DO MODO ESCURO (DARK MODE / LOCALSTORAGE)
+// ==========================================
+const btnToggleDarkMode = document.getElementById('btn-toggle-darkmode');
+const currentTheme = localStorage.getItem('theme') || 'light';
+
+// Função para atualizar dinamicamente o ícone do botão (Sol ou Lua)
+function atualizarIconeDarkMode(isDark) {
+    if (!btnToggleDarkMode) return;
+    if (isDark) {
+        // Ícone do Sol (para voltar ao modo claro)
+        btnToggleDarkMode.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon-darkmode">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+        `;
+    } else {
+        // Ícone da Lua (para voltar ao modo escuro)
+        btnToggleDarkMode.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon-darkmode">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        `;
+    }
+}
+
+// Carrega o tema que o utilizador escolheu no passado ao abrir o site
+if (currentTheme === 'dark') {
+    document.body.classList.add('dark-theme');
+    atualizarIconeDarkMode(true);
+}
+
+// Ouvinte de clique para alternar o tema
+if (btnToggleDarkMode) {
+    btnToggleDarkMode.addEventListener('click', () => {
+        document.body.classList.toggle('dark-theme');
+        
+        const isDark = document.body.classList.contains('dark-theme');
+        
+        // Grava a preferência no navegador do utilizador de forma persistente
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        
+        atualizarIconeDarkMode(isDark);
+        
+        showNotification(isDark ? "Modo Escuro ativado!" : "Modo Claro ativado!", "success");
+    });
+}
