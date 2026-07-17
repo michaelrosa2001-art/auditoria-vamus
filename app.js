@@ -25,7 +25,7 @@ try {
 // CONFIGURAÇÃO DO MAPBOX (TEMA DINÂMICO)
 // ==========================================
 // Cole aqui o teu token público do Mapbox (começa com "pk.eyJ1Ijo...")
-const mapboxToken = 'pk.eyJ1IjoibWlrZWdwMzQiLCJhIjoiY21yb2V3MXBuMGJ3NjJ5c2JlMTN5MmI4MiJ9.qjPpPPvfuzgK9Z04oivMNg'; 
+const mapboxToken = 'pk.eyJ1IjoibWlrZWdwMzQiLCJhIjoiY21ycGgzcjExMWptYjJ3cXVpM3RyMW12eCJ9.H1ehCnvPIQHUaLzoNkG5LQ'; 
 
 // Estilos oficiais minimalistas do Mapbox
 const mapboxStyleLight = 'mapbox/streets-v12';
