@@ -1,4 +1,4 @@
-const CACHE_NAME = "vamus-audit-v1";
+const CACHE_NAME = "vamus-audit-v3"; // Mudamos para v3 para forçar a limpeza
 const ASSETS = [
   "./",
   "./index.html",

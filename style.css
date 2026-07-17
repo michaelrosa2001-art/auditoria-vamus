@@ -1448,3 +1448,267 @@ body.dark-theme .radio-group {
   border-color: transparent !important;
   box-shadow: none !important;
 }
+/* ==========================================================================
+   MODAL DE CONFIRMAÇÃO CUSTOMIZADO (SAAS STYLE)
+   ========================================================================== */
+.confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(15, 23, 42, 0.3);
+  backdrop-filter: blur(4px); /* Desfoque de fundo elegante */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3100; /* Fica acima do ecrã de login e sidebar */
+  opacity: 0;
+  pointer-events: none;
+  transition: var(--transition);
+}
+
+/* Ativação do Modal */
+.confirm-modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.confirm-modal-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 32px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: var(--shadow-gaussian);
+  text-align: center;
+  transform: scale(0.9) translateY(20px); /* Começa menor e abaixo */
+  transition: var(--transition);
+}
+
+.confirm-modal-overlay.active .confirm-modal-card {
+  transform: scale(1) translateY(0); /* Entra na posição normal */
+}
+
+.confirm-modal-icon {
+  font-size: 2.2rem;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.confirm-modal-card h3 {
+  font-size: 1.2rem;
+  color: var(--text-main);
+  margin-bottom: 8px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.confirm-modal-card p {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.confirm-modal-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+/* Botão Cancelar (Cinza suave) */
+.btn-confirm-cancel {
+  flex: 1;
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid #e2e8f0 !important;
+  padding: 12px !important;
+  border-radius: 10px !important;
+  font-family: inherit;
+  font-weight: 600 !important;
+  font-size: 0.88rem !important;
+  cursor: pointer;
+  transition: var(--transition) !important;
+}
+
+.btn-confirm-cancel:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Cancelar no Modo Escuro */
+body.dark-theme .btn-confirm-cancel {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+body.dark-theme .btn-confirm-cancel:hover {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+}
+
+/* Botão Confirmar (Vermelho suave) */
+.btn-confirm-ok {
+  flex: 1;
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  padding: 12px !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-family: inherit;
+  font-weight: 600 !important;
+  font-size: 0.88rem !important;
+  cursor: pointer;
+  transition: var(--transition) !important;
+}
+
+.btn-confirm-ok:hover {
+  background-color: #dc2626 !important;
+  transform: translateY(-1px);
+}
+/* ==========================================================================
+   BOTÕES DE ORDENAÇÃO DE PARAGENS (SETAS UP/DOWN)
+   ========================================================================== */
+.btn-sort {
+  background: none !important;
+  border: none !important;
+  color: var(--text-muted) !important;
+  font-size: 0.72rem !important;
+  cursor: pointer !important;
+  padding: 2px 4px !important;
+  transition: var(--transition) !important;
+}
+
+.btn-sort:hover {
+  color: var(--primary) !important;
+  transform: scale(1.15);
+}
+
+/* Esconde as setas ao imprimir para o PDF/Excel ficar limpo */
+@media print {
+  .btn-sort {
+    display: none !important;
+  }
+}
+/* ==========================================================================
+   BOTÃO "X" PARA REMOVER PARAGENS INDIVIDUAIS NA TABELA
+   ========================================================================== */
+.btn-delete-paragem {
+  background: none !important;
+  border: none !important;
+  color: var(--text-muted) !important;
+  font-size: 1.1rem !important; /* Tamanho excelente para o símbolo × ser nítido */
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  padding: 2px 4px !important;
+  line-height: 1 !important;
+  transition: var(--transition) !important;
+}
+
+.btn-delete-paragem:hover {
+  color: #ef4444 !important; /* Torna-se num vermelho suave no hover */
+  transform: scale(1.15);
+}
+
+/* Oculta o botão X ao imprimir para o PDF/Excel ficar perfeito */
+@media print {
+  .btn-delete-paragem {
+    display: none !important;
+  }
+}
+/* ==========================================================================
+   ALINHAMENTO PIXEL-PERFECT DOS BOTÕES DE ANEXO
+   ========================================================================== */
+.attachment-controls {
+  margin-top: 0px !important;       /* Remove a margem superior que desalinhava a coluna */
+  margin-bottom: 0px !important;
+  height: 48px !important;          /* Força a mesma altura padrão dos teus inputs */
+}
+
+.btn-attach-galeria {
+  padding: 14px 18px !important;    /* Ajusta o padding para ser idêntico ao dos inputs */
+  height: 48px !important;
+  font-size: 0.88rem !important;    /* Ajusta o tamanho da fonte */
+  box-shadow: none !important;
+}
+
+.btn-attach-camera {
+  width: 48px !important;           /* Ajusta o círculo para alinhar perfeitamente em altura */
+  height: 48px !important;
+  min-width: 48px !important;
+  box-shadow: 0px 4px 12px rgba(0, 168, 150, 0.08) !important;
+}
+/* ==========================================================================
+   GRELHA DE GALERIA DE EVIDÊNCIAS FOTOGRÁFICAS (MÚLTIPLAS FOTOS)
+   ========================================================================== */
+.evidencias-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Grelha auto-ajustável */
+  gap: 14px;
+  margin-top: 16px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.gallery-thumb-wrapper {
+  position: relative;
+  width: 100%;
+  padding-top: 100%; /* Força uma proporção quadrada perfeita de 1:1 */
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  background-color: var(--bg-main);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+.gallery-thumb-wrapper:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.gallery-thumb-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Recorta a imagem para preencher o quadrado de forma limpa */
+}
+
+/* Botão de remoção (X) redondo vermelho no topo direito da miniatura */
+.btn-delete-thumb {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background-color: rgba(239, 68, 68, 0.95) !important;
+  color: #ffffff !important;
+  border: none !important;
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  z-index: 5;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2) !important;
+  transition: var(--transition) !important;
+  line-height: 1 !important;
+  padding: 0 !important;
+}
+
+.btn-delete-thumb:hover {
+  background-color: #ef4444 !important;
+  transform: scale(1.1);
+}
+
+@media print {
+  .btn-delete-thumb {
+    display: none !important;
+  }
+}

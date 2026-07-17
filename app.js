@@ -22,6 +22,62 @@ try {
     console.error("Não foi possível carregar a ligação online:", err);
 }
 // ==========================================
+// CONFIGURAÇÃO DO MAPBOX (TEMA DINÂMICO)
+// ==========================================
+// Cole aqui o teu token público do Mapbox (começa com "pk.eyJ1Ijo...")
+const mapboxToken = 'pk.eyJ1IjoibWlrZWdwMzQiLCJhIjoiY21yb2V3MXBuMGJ3NjJ5c2JlMTN5MmI4MiJ9.qjPpPPvfuzgK9Z04oivMNg'; 
+
+// Estilos oficiais minimalistas do Mapbox
+const mapboxStyleLight = 'mapbox/streets-v12';
+const mapboxStyleDark = 'mapbox/dark-v11';
+
+// Variável global para podermos atualizar o mapa dinamicamente
+let tileLayerGps = null;
+// Função global para exibir o Modal de Confirmação Customizado (Retorna uma Promise assíncrona!)
+window.showConfirmModal = function(mensagem) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirm-modal');
+        const msgElement = document.getElementById('confirm-modal-message');
+        const btnCancel = document.getElementById('btn-confirm-cancel');
+        const btnOk = document.getElementById('btn-confirm-ok');
+        
+        // Se houver algum erro de carregamento no HTML, faz fallback para o confirm nativo
+        if (!modal || !msgElement || !btnCancel || !btnOk) {
+            resolve(confirm(mensagem));
+            return;
+        }
+        
+        // Altera o texto da mensagem do modal
+        msgElement.textContent = mensagem;
+        
+        // Exibe o modal adicionando a classe active
+        modal.classList.add('active');
+        
+        // Handler para clique em Cancelar (Retorna false)
+        const handleCancel = () => {
+            modal.classList.remove('active');
+            removerListeners();
+            resolve(false);
+        };
+        
+        // Handler para clique em Confirmar (Retorna true)
+        const handleOk = () => {
+            modal.classList.remove('active');
+            removerListeners();
+            resolve(true);
+        };
+        
+        // Limpa ouvintes de eventos antigos para evitar cliques duplicados nas chamadas seguintes
+        function removerListeners() {
+            btnCancel.removeEventListener('click', handleCancel);
+            btnOk.removeEventListener('click', handleOk);
+        }
+        
+        btnCancel.addEventListener('click', handleCancel);
+        btnOk.addEventListener('click', handleOk);
+    });
+};
+// ==========================================
 // MOTOR GLOBAL DE NOTIFICAÇÕES (TOASTS)
 // ==========================================
 function showNotification(message, type = 'success') {
@@ -96155,6 +96211,8 @@ document.addEventListener("DOMContentLoaded", () => {
   povoarSeletorCarreiras();
   configurarListenersImagensDuplas();
   renderFichasGuardadas();
+  // Adiciona esta linha dentro de DOMContentLoaded:
+  configurarListenersEvidenciasMultiplas();
 
   // Monitorização dinâmica da alteração do seletor de carreiras
   const select = document.getElementById("carreiraSelect");
@@ -96196,15 +96254,21 @@ function povoarSeletorCarreiras() {
   select.innerHTML += '<option value="manual_custom">Outra Linha (Inserção Manual)...</option>';
 }
 
+// Função para detetar com segurança se o dia é Útil, Sábado ou Domingo (Sem erros de fuso horário!)
 function obterTipoDia(dataStr) {
-  if (!dataStr) return "Dias Úteis";
-  const diaSemana = new Date(dataStr).getDay();
-  if (diaSemana === 0) return "Domingo e Feriado";
-  if (diaSemana === 6) return "Sábado";
-  return "Dias Úteis";
+    if (!dataStr) return "Dias Úteis";
+    
+    // TRUQUE DE ENGENHARIA: Substitui hífens por barras (ex: "2026-07-17" para "2026/07/17")
+    // Isto força o navegador a ler o dia no fuso horário LOCAL e não em UTC!
+    const dataLocal = dataStr.replace(/-/g, '/');
+    const diaSemana = new Date(dataLocal).getDay();
+    
+    if (diaSemana === 0) return "Domingo e Feriado";
+    if (diaSemana === 6) return "Sábado";
+    return "Dias Úteis";
 }
 
-// 4. Geração Dinâmica da Tabela com Base de Dados do Horário
+// 4. Geração Dinâmica da Tabela com Base de Dados do Horário (DUAL-COMPATÍVEL)
 window.gerarTabelaHorario = function() {
   const carreira = document.getElementById("carreiraSelect").value;
   const sentido = document.getElementById("sentido").value;
@@ -96220,7 +96284,6 @@ window.gerarTabelaHorario = function() {
     return;
   }
 
-  // Se for uma linha manual (fora da BD), limpamos a tabela fixa e oferecemos introdução limpa
   if (carreira === "manual_custom") {
     avisoSemHorario.style.display = "none";
     painel.innerHTML = `
@@ -96243,11 +96306,25 @@ window.gerarTabelaHorario = function() {
 
   avisoSemHorario.style.display = "none";
 
+  // DETETA INTELIGENTEMENTE O FORMATO DO JSON QUE ESTÁ CARREGADO NA MEMÓRIA
+  const isOldFormat = !!(dadosLinha.stops || dadosLinha.runs);
+  let optionsHtml = "";
+
+  if (isOldFormat) {
+      // Formato Antigo: runs é um array de horas
+      const runs = dadosLinha.runs || [];
+      optionsHtml = runs.map((r, idx) => `<option value="${idx}">Partida às ${r}</option>`).join("");
+  } else {
+      // Formato Novo (Python): as chaves do objeto são as próprias partidas
+      const keys = Object.keys(dadosLinha) || [];
+      optionsHtml = keys.map(r => `<option value="${r}">${r}</option>`).join("");
+  }
+
   let html = `
     <div style="background: #eef1f6; padding: 10px; border-radius: 6px; margin-bottom: 12px; border: 1px solid #dcdfe6;">
       <label style="margin-top:0;"><strong>Selecionar Viagem (Hora Partida):</strong></label>
       <select id="runSelect" onchange="carregarParagensDaViagem()" style="margin-bottom: 5px;">
-        ${dadosLinha.runs.map(r => `<option value="${r}">Partida às ${r}</option>`).join("")}
+        ${optionsHtml}
       </select>
     </div>
     <div class="tabela-wrap">
@@ -96269,74 +96346,103 @@ window.gerarTabelaHorario = function() {
   carregarParagensDaViagem();
 };
 
+// Função para carregar as paragens reais da viagem selecionada (DUAL-COMPATÍVEL)
 window.carregarParagensDaViagem = function() {
-  const carreira = document.getElementById("carreiraSelect").value;
-  if (carreira === "manual_custom") return;
+    const carreira = document.getElementById("carreiraSelect").value;
+    if (carreira === "manual_custom") return;
 
-  const sentido = document.getElementById("sentido").value;
-  const data_viagem = document.getElementById("data_viagem").value;
-  const tipoDia = obterTipoDia(data_viagem);
-  const runIndex = document.getElementById("runSelect").selectedIndex;
+    const sentido = document.getElementById("sentido").value;
+    const data_viagem = document.getElementById("data_viagem").value;
+    const tipoDia = obterTipoDia(data_viagem);
+    
+    const runSelect = document.getElementById("runSelect");
+    if (!runSelect) return;
 
-  const dadosLinha = baseDadosHorarios[carreira]?.[sentido]?.[tipoDia] || baseDadosHorarios[carreira]?.[sentido]?.["Dias Úteis"];
-  if (!dadosLinha) return;
+    const dadosLinha = baseDadosHorarios[carreira]?.[sentido]?.[tipoDia] || baseDadosHorarios[carreira]?.[sentido]?.["Dias Úteis"];
+    if (!dadosLinha) return;
 
-  const tbody = document.getElementById("corpoTabelaParagens");
-  tbody.innerHTML = "";
+    const tbody = document.getElementById("corpoTabelaParagens");
+    if (tbody) tbody.innerHTML = "";
 
-  paragensAtuais = dadosLinha.stops.map(stop => {
-    const tPrevista = stop.times[runIndex] || "--";
-    return {
-      nome: stop.name,
-      horaPrevista: tPrevista,
-      horaReal: "",
-      dinheiro: 0,
-      cartao: 0,
-      app: 0,
-      obs: ""
-    };
-  });
+    // Deteta se o JSON lido é o antigo ou o novo
+    const isOldFormat = !!(dadosLinha.stops || dadosLinha.runs);
 
-  paragensAtuais.forEach((item, index) => {
-    tbody.innerHTML += renderizarLinhaParagem(item, index);
-  });
+    if (isOldFormat) {
+        // Lógica antiga (Lê usando stops e selectedIndex)
+        const runIndex = runSelect.selectedIndex;
+        const stops = dadosLinha.stops || [];
+        paragensAtuais = stops.map(stop => {
+            const tPrevista = stop.times[runIndex] || "--";
+            return {
+                nome: stop.name || "N/A",
+                horaPrevista: tPrevista,
+                horaReal: "", dinheiro: 0, cartao: 0, app: 0, obs: ""
+            };
+        });
+    } else {
+        // Lógica nova (Lê usando a chave selecionada, ex: "Partida às 08:00")
+        const selectedRunVal = runSelect.value;
+        const paragensSalvas = dadosLinha[selectedRunVal] || [];
+        paragensAtuais = paragensSalvas.map(p => ({
+            nome: p.nome || "N/A",
+            horaPrevista: p.horaPrevista || "--:--",
+            horaReal: "", dinheiro: 0, cartao: 0, app: 0, obs: ""
+        }));
+    }
+
+    // Redesenha as linhas na tabela principal
+    redesenharTabela();
 };
 
+// Substitui a tua função renderizarLinhaParagem antiga por esta:
 function renderizarLinhaParagem(item, index) {
   return `
     <tr>
-      <td><strong>${item.nome}</strong></td>
+      
       <td>
-  <input type="time" class="input-teorica" value="${item.horaPrevista || ''}" onchange="atualizarCampoTabela(${index}, 'horaPrevista', this.value)">
-</td>
-      <td>
-        <div style="display:flex; gap:3px; align-items:center;">
-          <input type="time" id="real_time_${index}" value="${item.horaReal}" onchange="atualizarCampoTabela(${index}, 'horaReal', this.value)" style="padding: 4px; font-size:12px; margin-top:0;">
-          <button type="button" class="btn-mini btn-mais" onclick="definirHoraAtual(${index})" title="Hora Atual" style="height:26px; width:26px; font-size:11px;">⏱️</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+          <strong>${item.nome}</strong>
+          <!-- Setas de ordenação + Botão de apagar (X) -->
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button type="button" class="btn-sort" onclick="moverParagem(${index}, -1)" title="Mover para cima">▲</button>
+            <button type="button" class="btn-sort" onclick="moverParagem(${index}, 1)" title="Mover para baixo">▼</button>
+            
+            <!-- NOVO BOTÃO DE REMOVER PARAGEM (X) -->
+            <button type="button" class="btn-delete-paragem" onclick="removerParagemTabela(${index})" title="Remover esta paragem">&times;</button>
+          </div>
         </div>
       </td>
       <td>
-        <div class="pag-linha">
-          <span class="pag-label">D</span>
-          <button type="button" class="btn-mini btn-menos" onclick="alterarPax(${index}, 'dinheiro', -1)">-</button>
-          <span id="pax_${index}_dinheiro" class="pag-valor">${item.dinheiro}</span>
-          <button type="button" class="btn-mini btn-mais" onclick="alterarPax(${index}, 'dinheiro', 1)">+</button>
-        </div>
-        <div class="pag-linha">
-          <span class="pag-label">C</span>
-          <button type="button" class="btn-mini btn-menos" onclick="alterarPax(${index}, 'cartao', -1)">-</button>
-          <span id="pax_${index}_cartao" class="pag-valor">${item.cartao}</span>
-          <button type="button" class="btn-mini btn-mais" onclick="alterarPax(${index}, 'cartao', 1)">+</button>
-        </div>
-        <div class="pag-linha">
-          <span class="pag-label">A</span>
-          <button type="button" class="btn-mini btn-menos" onclick="alterarPax(${index}, 'app', -1)">-</button>
-          <span id="pax_${index}_app" class="pag-valor">${item.app}</span>
-          <button type="button" class="btn-mini btn-mais" onclick="alterarPax(${index}, 'app', 1)">+</button>
-        </div>
+        <input type="time" class="input-teorica" value="${item.horaPrevista || item.teorica || ''}" onchange="atualizarCampoTabela(${index}, 'horaPrevista', this.value)">
       </td>
       <td>
-        <input type="text" value="${item.obs}" onchange="atualizarCampoTabela(${index}, 'obs', this.value)" placeholder="Obs..." style="font-size:11px; padding:4px; margin-top:0;">
+         <div style="display:flex; gap:3px; align-items:center;">
+            <input type="time" id="real_time_${index}" value="${item.horaReal || ''}" onchange="atualizarCampoTabela(${index}, 'horaReal', this.value)">
+            <button type="button" class="btn-mini btn-mais" onclick="definirHoraAtual(${index})" title="Hora Atual" style="height:26px; width:26px;">⏱️</button>
+         </div>
+      </td>
+      <td>
+         <div class="pag-linha">
+            <span class="pag-label">D</span>
+            <button type="button" class="btn-mini btn-menos" onclick="alterarPax(${index}, 'dinheiro', -1)">-</button>
+            <span id="pax_${index}_dinheiro" class="pag-valor">${item.dinheiro || 0}</span>
+            <button type="button" class="btn-mini btn-mais" onclick="alterarPax(${index}, 'dinheiro', 1)">+</button>
+         </div>
+         <div class="pag-linha">
+            <span class="pag-label">C</span>
+            <button type="button" class="btn-mini btn-menos" onclick="alterarPax(${index}, 'cartao', -1)">-</button>
+            <span id="pax_${index}_cartao" class="pag-valor">${item.cartao || 0}</span>
+            <button type="button" class="btn-mini btn-mais" onclick="alterarPax(${index}, 'cartao', 1)">+</button>
+         </div>
+         <div class="pag-linha">
+            <span class="pag-label">A</span>
+            <button type="button" class="btn-mini btn-menos" onclick="alterarPax(${index}, 'app', -1)">-</button>
+            <span id="pax_${index}_app" class="pag-valor">${item.app || 0}</span>
+            <button type="button" class="btn-mini btn-mais" onclick="alterarPax(${index}, 'app', 1)">+</button>
+         </div>
+      </td>
+      <td>
+         <input type="text" value="${item.obs || ''}" onchange="atualizarCampoTabela(${index}, 'obs', this.value)" placeholder="Obs..." style="font-size: 0.8rem; padding: 6px;">
       </td>
     </tr>
   `;
@@ -96465,42 +96571,72 @@ function configurarListenersImagensDuplas() {
     if (cameraInput) cameraInput.addEventListener('change', tratarSelecaoFicheiro);
   });
 }
-// ==========================================
-// 7. MOTOR DE GEOLOCALIZAÇÃO E MAPA (GPS REAL-TIME)
-// ==========================================
+// === COLA ESTA FUNÇÃO AUXILIAR LOGO ACIMA ===
+function obterMapboxUrl(estilo) {
+    return `https://api.mapbox.com/styles/v1/${estilo}/tiles/{z}/{x}/{y}?access_token=${mapboxToken}`;
+}
+
+// === SUBSTITUI A TUA FUNÇÃO ANTIGA POR ESTA VERSÃO COM MAPBOX ===
 function inicializarMapaTracking() {
     const mapContainer = document.getElementById('mapa-tracking');
     if (!mapContainer || mapaTracking) return;
 
+    // Inicializa o mapa com o renderizador Canvas ativo
     mapaTracking = L.map('mapa-tracking', { preferCanvas: true }).setView([37.0176, -7.9304], 13);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        crossOrigin: '' // <--- ADICIONA ESTA LINHA EXATAMENTE AQUI!
+    // Deteta se o utilizador já está no modo escuro para escolher o mapa inicial
+    const isDark = document.body.classList.contains('dark-theme');
+    const estiloInicial = isDark ? mapboxStyleDark : mapboxStyleLight;
+
+    // Carrega o mapa minimalista e limpo do Mapbox com CORS ativo
+    tileLayerGps = L.tileLayer(obterMapboxUrl(estiloInicial), {
+        attribution: '© Mapbox © OpenStreetMap',
+        tileSize: 512,
+        zoomOffset: -1,
+        crossOrigin: '' // Mantém as aspas vazias para CORS!
     }).addTo(mapaTracking);
 
     pathLine = L.polyline([], { color: '#00a896', weight: 5, opacity: 0.85 }).addTo(mapaTracking);
 }
 
-// === OUVINTE DO BOTÃO GPS COM CÁLCULO AUTOMÁTICO DE KM ===
+// === OUVINTE DO BOTÃO GPS (COM CONFIRMAÇÃO E ESTADO DE RE-GRAVAÇÃO) ===
 const btnToggleGps = document.getElementById('btn-toggle-gps');
 if (btnToggleGps) {
-    btnToggleGps.addEventListener('click', () => {
-        inicializarMapaTracking();
+    btnToggleGps.addEventListener('click', async () => {
+        const mapaContainer = document.getElementById('mapa-tracking');
         
         if (!isTrackingGps) {
+            // ==========================================
+            // SE JÁ EXISTIR ROTA, PEDE CONFIRMAÇÃO ANTES DE APAGAR E REINICIAR:
+            // ==========================================
+            if (coordenadasRota.length > 0) {
+                const confirmar = await showConfirmModal("Tem a certeza? A rota gravada anteriormente será excluída e substituída por uma nova.");
+                if (!confirmar) return; // Se clicar em Cancelar, interrompe e não faz nada
+            }
+
+            // === INICIAR GRAVAÇÃO GPS ===
             if (!navigator.geolocation) {
                 showNotification("O teu dispositivo não suporta Geolocalização por GPS.", "error");
                 return;
             }
             
-            // REINICIA OS CONTADORES DO PERCURSO NOVO
+            if (mapaContainer) {
+                mapaContainer.style.display = 'block';
+            }
+            
+            inicializarMapaTracking(); // Inicializa o mapa Leaflet
+            
+            if (mapaTracking) {
+                mapaTracking.invalidateSize(); 
+            }
+            
+            // REINICIA OS DADOS DO PERCURSO DESDE O INÍCIO
             coordenadasRota = [];     
             pathLine.setLatLngs([]);   
-            distanciaTotalKm = 0; // Começa a distância a 0 km
+            distanciaTotalKm = 0; 
             
             const inputKm = document.getElementById("km_efetuados");
-            if (inputKm) inputKm.value = "0.00"; // Limpa o input no ecrã
+            if (inputKm) inputKm.value = "0.00"; 
             
             isTrackingGps = true;
             btnToggleGps.textContent = "⏹ Parar Gravação de Rota (GPS)";
@@ -96512,19 +96648,14 @@ if (btnToggleGps) {
                     const { latitude, longitude } = position.coords;
                     const novoPonto = [latitude, longitude];
                     
-                    // ==========================================
-                    // SE JÁ HOUVER UM PONTO ANTERIOR, CALCULA A DISTÂNCIA:
-                    // ==========================================
                     if (coordenadasRota.length > 0) {
                         const ultimoPonto = coordenadasRota[coordenadasRota.length - 1];
                         const distanciaTrecho = calcularDistanciaEntreCoordenadas(
                             ultimoPonto[0], ultimoPonto[1], 
                             latitude, longitude
                         );
+                        distanciaTotalKm += distanciaTrecho;
                         
-                        distanciaTotalKm += distanciaTrecho; // Soma a distância percorrida
-                        
-                        // Atualiza a caixa de texto no ecrã em tempo real (Arredondado a 2 casas decimais)
                         const inputKm = document.getElementById("km_efetuados");
                         if (inputKm) {
                             inputKm.value = distanciaTotalKm.toFixed(2);
@@ -96541,20 +96672,21 @@ if (btnToggleGps) {
                 { enableHighAccuracy: true, maximumAge: 0, timeout: 8000 }
             );
         } else {
+            // === PARAR GRAVAÇÃO GPS ===
             isTrackingGps = false;
             if (watchId) {
                 navigator.geolocation.clearWatch(watchId);
             }
             
-            btnToggleGps.textContent = "▶ Iniciar Gravação de Rota (GPS)";
+            // NOVO TEXTO: Altera o texto para "Voltar a Gravar" após parar a gravação!
+            btnToggleGps.textContent = "🔄 Voltar a Gravar";
             btnToggleGps.className = "btn-gps-start";
             
             showNotification("Percurso concluído! A gerar imagem do mapa...", "warning");
 
             setTimeout(() => {
-                const mapaElement = document.getElementById('mapa-tracking');
-                if (mapaElement) {
-                    html2canvas(mapaElement, { 
+                if (mapaContainer) {
+                    html2canvas(mapaContainer, { 
                         useCORS: true,
                         allowTaint: false,
                         logging: false
@@ -96655,7 +96787,8 @@ window.guardarFichaFinal = function() {
     paragens: JSON.parse(JSON.stringify(paragensAtuais)),
     matricula_foto: fotosAtuais.matricula_foto,
     rota_vamus: fotosAtuais.rota_vamus,
-    foto: fotosAtuais.foto
+    foto: evidenciasFotos[0] || "",
+    evidencias_fotos: evidenciasFotos
   };
 
   if (indiceEdicao === -1) {
@@ -96718,7 +96851,7 @@ function renderFichasGuardadas() {
     html += `
       <div class="ficha-item">
           <div>
-              <strong>Data:</strong> ${ficha.data_viagem || 'N/A'} | <strong>Linha:</strong> ${ficha.carreiraSelect || 'N/A'} <br>
+              <strong>Data:</strong> ${ficha.data_viagem || 'N/A'} | <strong>Linha:</strong> ${(ficha.carreira || 'N/A').split(" - ")[0]} <br>
               <strong>Avaliador:</strong> ${ficha.avaliadores || 'N/A'}
           </div>
           <div class="ficha-actions" style="display: flex; gap: 6px; margin-top: 8px;">
@@ -96761,6 +96894,15 @@ function exportarFichaIndividual(index) {
 }
 
 window.editarFicha = function(i) {
+  // === ADICIONA ESTE BLOCO LOGO NA PRIMEIRA LINHA DA FUNÇÃO ===
+  // Fecha a barra lateral e remove o fundo escuro automaticamente ao editar
+  const sidebarElement = document.getElementById('sidebar');
+  const overlayElement = document.getElementById('sidebar-overlay');
+  if (sidebarElement && overlayElement) {
+      sidebarElement.classList.remove('active');
+      overlayElement.classList.remove('active');
+  }
+  // ============================================================
   indiceEdicao = i;
   const f = fichasGuardadas[i];
 
@@ -96913,6 +97055,15 @@ window.editarFicha = function(i) {
           btnToggleGps.className = "btn-gps-start";
       }
   }
+  // === COLA ESTE NOVO BLOCO EXATAMENTE AQUI (No fim da função, antes de fechar com '}') ===
+  if (f.evidencias_fotos && Array.isArray(f.evidencias_fotos)) {
+      evidenciasFotos = [...f.evidencias_fotos];
+  } else if (f.foto) {
+      evidenciasFotos = [f.foto]; // Se for uma ficha antiga, converte a única foto que tinha em galeria
+  } else {
+      evidenciasFotos = [];
+  }
+  renderizarGaleriaEvidencias(); // Desenha a grelha de miniaturas de fotos no formulário
 };
 
 window.cancelarEdicao = function() {
@@ -97124,7 +97275,7 @@ window.exportarParaExcel = async function() {
     sheetFotos.getRow(rowIdx).font = { bold: true, size: 12 };
     rowIdx++;
 
-    sheetFotos.getRow(rowIdx).values = ["Foto Matrícula", "Rota Vamus", "Samsung Cycling", "Foto Lateral / Geral"];
+    sheetFotos.getRow(rowIdx).values = ["Foto Matrícula", "Rota Vamus", "Gravação da Rota em Tempo Real", "Foto Lateral / Geral"];
     sheetFotos.getRow(rowIdx).font = { bold: true };
     rowIdx++;
 
@@ -97434,18 +97585,197 @@ if (currentTheme === 'dark') {
     atualizarIconeDarkMode(true);
 }
 
-// Ouvinte de clique para alternar o tema
+// Procura este bloco mais abaixo no teu app.js e deixa-o estruturado assim:
 if (btnToggleDarkMode) {
     btnToggleDarkMode.addEventListener('click', () => {
         document.body.classList.toggle('dark-theme');
         
         const isDark = document.body.classList.contains('dark-theme');
         
-        // Grava a preferência no navegador do utilizador de forma persistente
+        // Grava a preferência de forma persistente no navegador
         localStorage.setItem('theme', isDark ? 'dark' : 'light');
         
+        // Atualiza o desenho do ícone (Sol/Lua)
         atualizarIconeDarkMode(isDark);
+        
+        // === PASSO 3: COLA ESTE BLOCO EXATAMENTE AQUI ===
+        if (tileLayerGps && mapaTracking) {
+            const novoEstilo = isDark ? mapboxStyleDark : mapboxStyleLight;
+            tileLayerGps.setUrl(obterMapboxUrl(novoEstilo));
+        }
+        // ===============================================
         
         showNotification(isDark ? "Modo Escuro ativado!" : "Modo Claro ativado!", "success");
     });
+}
+// ==========================================
+// SISTEMA DE ORDENAÇÃO E INSERÇÃO DINÂMICA DE PARAGENS
+// ==========================================
+
+// 1. Função para redesenhar a tabela ativa com base no array "paragensAtuais"
+// Substitui a tua função redesenharTabela antiga por esta versão específica do corpo:
+window.redesenharTabela = function() {
+    // Encontra o corpo da tabela através do ID específico que tens no HTML
+    const tbody = document.getElementById("corpoTabelaParagens");
+    if (!tbody) return;
+
+    if (paragensAtuais.length === 0) {
+        tbody.innerHTML = "";
+        return;
+    }
+
+    // Constrói apenas o HTML das linhas das paragens
+    let html = "";
+    paragensAtuais.forEach((item, index) => {
+        html += renderizarLinhaParagem(item, index);
+    });
+
+    // INJETA APENAS AS LINHAS (Evita apagar o dropdown ou os cabeçalhos!)
+    tbody.innerHTML = html;
+};
+
+// 2. Função para mover a paragem para cima ou para baixo (Troca os índices no array)
+window.moverParagem = function(index, direcao) {
+    const novoIndex = index + direcao;
+
+    // Impede que se mova para fora dos limites do array
+    if (novoIndex < 0 || novoIndex >= paragensAtuais.length) return;
+
+    // Algoritmo de troca rápida (Swap) de posições na memória do JS
+    const temp = paragensAtuais[index];
+    paragensAtuais[index] = paragensAtuais[novoIndex];
+    paragensAtuais[novoIndex] = temp;
+
+    // Redesenha a tabela imediatamente com a nova ordem!
+    redesenharTabela();
+    showNotification("Ordem da paragem atualizada!", "success");
+};
+// Função assíncrona para remover uma paragem da tabela ativa (Usa o teu Modal Customizado!)
+window.removerParagemTabela = async function(index) {
+    if (!paragensAtuais[index]) return;
+    
+    // Dispara o teu modal com desfoque de fundo e as cores do teu site!
+    const confirmar = await showConfirmModal(`Tem a certeza que deseja remover a paragem "${paragensAtuais[index].nome}" deste relatório?`);
+    if (!confirmar) return; // Se clicarem em Cancelar, não faz nada
+
+    paragensAtuais.splice(index, 1); // Remove a paragem da memória do array
+    redesenharTabela(); // Redesenha as linhas na tabela principal imediatamente
+    
+    showNotification("Paragem removida do percurso com sucesso!", "success");
+};
+
+// 3. Reescrita da função adicionarParagem (Envia diretamente para a lista principal da tabela)
+window.adicionarParagem = function() {
+    const nome = document.getElementById("paragem_nome").value.trim();
+    const horaTeorica = document.getElementById("paragem_hora_teorica").value;
+    const horaReal = document.getElementById("paragem_hora_real").value;
+    const obs = document.getElementById("paragem_obs").value.trim();
+
+    if (!nome) {
+        showNotification("Por favor, preencha o nome da paragem manual.", "warning");
+        return;
+    }
+
+    // Cria o objeto da paragem manual estruturado
+    const novaParagemManual = {
+        nome: nome,
+        horaPrevista: horaTeorica || "--:--",
+        horaReal: horaReal || "",
+        dinheiro: pagManual.D || 0,
+        cartao: pagManual.C || 0,
+        app: pagManual.A || 0,
+        obs: obs || ""
+    };
+
+    // Insere diretamente no teu array principal de paragens!
+    paragensAtuais.push(novaParagemManual);
+
+    // Redesenha a tabela principal imediatamente com a nova paragem inserida
+    redesenharTabela();
+
+    // Limpa o painel de inserção manual e reinicia os contadores
+    document.getElementById("paragem_nome").value = "";
+    document.getElementById("paragem_hora_teorica").value = "";
+    document.getElementById("paragem_hora_real").value = "";
+    document.getElementById("paragem_obs").value = "";
+    
+    // Zera os contadores manuais se o teu HTML tiver botões neles
+    pagManual = { D: 0, C: 0, A: 0 };
+    const totalPaxManual = document.getElementById("totalPaxManual");
+    if (totalPaxManual) totalPaxManual.textContent = "Total Passageiros: 0";
+    
+    // Opcional: limpa os números exibidos nos labels manuais se existirem
+    ["D", "C", "A"].forEach(tipo => {
+        const span = document.getElementById(`pagManual_${tipo}`);
+        if (span) span.textContent = "0";
+    });
+
+    showNotification("Paragem manual adicionada ao fim da tabela principal!", "success");
+};
+// ==========================================
+// GESTÃO DA GALERIA MULTI-FOTOS (EVIDÊNCIAS)
+// ==========================================
+let evidenciasFotos = []; // Array global para guardar os códigos Base64 de todas as fotos
+
+// 1. Função para desenhar a galeria de miniaturas no ecrã
+window.renderizarGaleriaEvidencias = function() {
+    const galeria = document.getElementById('galeria-evidencias');
+    if (!galeria) return;
+    
+    if (evidenciasFotos.length === 0) {
+        galeria.innerHTML = `<em style="color: var(--text-muted); font-size: 0.85rem;">Nenhuma imagem anexada.</em>`;
+        return;
+    }
+    
+    let html = "";
+    evidenciasFotos.forEach((src, idx) => {
+        html += `
+            <div class="gallery-thumb-wrapper">
+                <img src="${src}" class="gallery-thumb-img">
+                <button type="button" class="btn-delete-thumb" onclick="removerFotoEvidencia(${idx})" title="Remover imagem">&times;</button>
+            </div>
+        `;
+    });
+    galeria.innerHTML = html;
+};
+
+// 2. Função para remover uma foto individual da galeria
+window.removerFotoEvidencia = function(idx) {
+    evidenciasFotos.splice(idx, 1);
+    renderizarGaleriaEvidencias();
+};
+
+// 3. Ouvintes para capturar ficheiros múltiplos da galeria ou um da câmara
+function configurarListenersEvidenciasMultiplas() {
+    const galeriaInput = document.getElementById('evidencia_foto_galeria');
+    const cameraInput = document.getElementById('evidencia_foto_camera');
+    
+    const lerFicheiro = (file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            evidenciasFotos.push(e.target.result); // Adiciona a imagem Base64 à lista
+            renderizarGaleriaEvidencias();        // Redesenha a grelha
+        };
+        reader.readAsDataURL(file);
+    };
+
+    if (galeriaInput) {
+        galeriaInput.addEventListener('change', (e) => {
+            const files = e.target.files;
+            for (let i = 0; i < files.length; i++) {
+                lerFicheiro(files[i]); // Lê todas as fotos selecionadas simultaneamente
+            }
+            galeriaInput.value = ""; // Reseta o input
+        });
+    }
+
+    if (cameraInput) {
+        cameraInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                lerFicheiro(file); // Lê a foto tirada com a câmara
+            }
+            cameraInput.value = ""; // Reseta o input
+        });
+    }
 }
